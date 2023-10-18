@@ -5,46 +5,44 @@
 open Int64
 
 
-type int_list64 =
-  | Empty
-  | Cell of int64 * int_list64
-;;
+type bigint = int64 list;;
+
 
 (* Question 1.1 *)
 
-let peek l =
-  match l with 
-  | Empty -> raise (Invalid_argument "peek: empty l")
-  | Cell(e, l2) -> e
-;; 
-
-let pop l =
-  match l with 
-  | Empty -> raise (Invalid_argument "pop: empty l")
-  | Cell(e, l2) -> (e, l2)
+let peek b =
+  match b with 
+  | [] -> raise (Invalid_argument "peek: empty b")
+  | e::b2 -> e
 ;;
 
-let rec insert x l =
-  match l with
-  | Empty -> Cell(x, Empty)
-  | Cell(e, l2) -> Cell(e, insert x l2)
+let pop b =
+  match b with 
+  | [] -> raise (Invalid_argument "pop: empty b")
+  | e::b2 -> (e, b2)
 ;;
-  
-let rec print_int_list l = 
-  match l with 
-  | Empty -> print_string " "
-  | Cell(e, l2) -> 
-      print_string (to_string e); 
+
+let rec insert x b =
+  match b with
+  | [] -> [x]
+  | e::b2 -> e::(insert x b2)
+;;
+
+let rec print_bigint b = 
+  match b with 
+  | [] -> print_string " "
+  | e::b2 -> 
+      print_string (to_string e);
       print_string ", ";
-      print_int_list l2
+      print_bigint b2
 ;;
 
-let l = Cell(23L, Cell(6L, Empty));; 
-let l = insert 4L l;;
-print_int_list l;;
-let e = peek l;;
-let (e, l) = pop l;;
-print_int_list l;;
+let b = [23L; 6L];;
+let b = insert 4L b;;
+print_bigint b;;
+let e = peek b;;
+let (e, b) = pop b;;
+print_bigint b;;
 
 
 (* Question 1.2 *)
@@ -63,17 +61,24 @@ let rec decomposition_int64 x =
   else false::(decomposition_int64 (div x 2L))
 ;;
 
-let rec decomposition l =
-  match l with
-  | Empty -> []
-  | Cell(x, l2) -> decomposition_int64 x @ decomposition l2
+let rec decomposition b =
+  match b with
+  | [] -> []
+  | x::b2 -> decomposition_int64 x @ decomposition b2
 ;;
 
-let l2 = Cell(38L, Empty);;
-decomposition l2;;
+let b2 = [38L];;
+decomposition b2;;
 
 
 (* Question 1.3 *)
+
+
+
+
+
+
+
 
 
 
