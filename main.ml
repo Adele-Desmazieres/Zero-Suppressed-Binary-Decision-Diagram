@@ -1,7 +1,3 @@
-(* Ceci est un éditeur pour OCaml
-   Entrez votre programme ici, et envoyez-le au toplevel en utilisant le
-   bouton "Évaluer le code" ci-dessous ou [Ctrl-e]. *)
-
 open Int64
 
 
