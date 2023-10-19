@@ -111,23 +111,33 @@ let table x n =
 
 (* Question 2.7 : voir le type bdd *)
 
-let rec print_arbre a =
-  match a with
-  | Leaf(true) -> print_string "Leaf true" 
-  | Leaf(false) -> print_string "Leaf false" 
-  | Node(a1, b, a2) -> 
-      print_string "Node ("; 
-      print_arbre a1;
-      print_string ", ";
-      print_int b;
-      print_string ", ";
-      print_arbre a2;
-      print_string ")"
+
+let print_arbre a =
+  let rec print_arbre_aux a =
+    match a with
+    | Leaf(true) -> print_string "Leaf true" 
+    | Leaf(false) -> print_string "Leaf false" 
+    | Node(a1, b, a2) -> 
+        print_string "Node ("; 
+        print_arbre_aux a1;
+        print_string ", ";
+        print_int b;
+        print_string ", ";
+        print_arbre_aux a2;
+        print_string ")"
+  in
+  print_arbre_aux a;
+  print_string "\n"
 ;; 
 
 
 (* Question 2.8 *)
 
+(* 
+  Input: bool list of size of any power of 2.
+  Output: a decision binary tree that contains the elements 
+  of the list in its leaves, ordered from left to right. 
+*)
 let cons_arbre vertable =
   
   let rec cons_arbre_aux vertable start_index end_index current_depth =
@@ -144,7 +154,13 @@ let cons_arbre vertable =
 ;;
 
 
+(* Question 2.9 *)
 
+let rec liste_feuilles a =
+  match a with
+  | Leaf(e) -> [e]
+  | Node(a1, e, a2) -> liste_feuilles a1 @ liste_feuilles a2
+;;
 
 
 
@@ -176,8 +192,13 @@ completion [false; true; true; false; false; true] 8;;
 
 composition [false; true; true; false; false; true];;
 *)
-      
+
+
+
+open Printf
+  
 let a = cons_arbre [true; false; false; false];;
 print_arbre a;;
+let la = liste_feuilles a;;
+List.iter (printf "%b ") la;;
 print_string "\n";;
-
