@@ -4,10 +4,10 @@ open Int64
 type bigint = int64 list;;
 
 (* Binary Decision Diagram *)
-type BDD =
+type bdd = 
   | Leaf of bool
-  | Node of BDD * int * BDD (* TODO: int or int64 or bigint ??? *)
-;;
+  | Node of bdd * int * bdd
+;; 
 
 
 (* Question 1.1 *)
@@ -109,6 +109,44 @@ let table x n =
   completion (decomposition [x]) n
 
 
+(* Question 2.7 : voir le type bdd *)
+
+let rec print_arbre a =
+  match a with
+  | Leaf(true) -> print_string "Leaf true" 
+  | Leaf(false) -> print_string "Leaf false" 
+  | Node(a1, b, a2) -> 
+      print_string "Node ("; 
+      print_arbre a1;
+      print_string ", ";
+      print_int b;
+      print_string ", ";
+      print_arbre a2;
+      print_string ")"
+;; 
+
+
+(* Question 2.8 *)
+
+let cons_arbre vertable =
+  
+  let rec cons_arbre_aux vertable start_index end_index current_depth =
+    if start_index + 1 = end_index 
+    then Leaf(List.nth vertable start_index)
+    else 
+      let mid_index = (start_index + end_index) / 2 in
+      let a1 = cons_arbre_aux vertable start_index mid_index (current_depth+1) in
+      let a2 = cons_arbre_aux vertable mid_index end_index (current_depth+1) in
+      Node(a1, current_depth, a2) 
+  in
+  
+  cons_arbre_aux vertable 0 (List.length vertable) 1
+;;
+
+
+
+
+
 
 
 
@@ -116,7 +154,7 @@ let table x n =
 
 
 (* TESTS *)
-
+(*
 let b = [23L; 6L];;
 let b = insert 4L b;;
 print_bigint b;;
@@ -137,4 +175,9 @@ completion [false; true; true; false; false; true] 4;;
 completion [false; true; true; false; false; true] 8;;
 
 composition [false; true; true; false; false; true];;
+*)
+      
+let a = cons_arbre [true; false; false; false];;
+print_arbre a;;
+print_string "\n";;
 
