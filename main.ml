@@ -89,9 +89,6 @@ let rec completion l n =
   | (h::t,n) -> h::(completion t (n-1))
 ;;
 
-completion [false; true; true; false; false; true] 4;;
-completion [false; true; true; false; false; true] 8;;
-
 
 (* Question 1.4 *)
 
@@ -136,15 +133,7 @@ list_of_pow 63L;;
 list_of_pow 100L;;
 list_of_pow 36L;;
 
+completion [false; true; true; false; false; true] 4;;
+completion [false; true; true; false; false; true] 8;;
+
 composition [false; true; true; false; false; true];;
-
-
-
-
-
-
-
-
-
-
-
