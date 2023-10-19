@@ -1,13 +1,19 @@
 open Int64
+open Printf
 
-(* Representation d'un bigint en liste d'int64 *)
+(* Question 1.1 : représentation d'un bigint en liste d'int64 *)
 type bigint = int64 list;;
 
-(* Binary Decision Diagram *)
+(* Question 2.7 : Binary Decision Diagram *)
 type bdd = 
   | Leaf of bool
   | Node of bdd * int * bdd
 ;; 
+
+(* Question 3.10 : liste de couples (bigint * pointeur vers noeud d'un bdd) *)
+(* TODO : remplacer bdd par une ref vers un noeud *)
+type listeDejaVus = (bigint * bdd) list;;
+
 
 
 (* Question 1.1 *)
@@ -71,9 +77,6 @@ let rec pow2 n =
   | _ -> mul 2L (pow2 (sub n 1L))
 ;;
 
-let c2 = [pow2 2L];;
-decomposition c2;;
-
 let rec list_of_pow n =
   if n < 64L then [pow2 n]
   else 0L::(list_of_pow (sub n 64L))
@@ -110,7 +113,6 @@ let table x n =
 
 
 (* Question 2.7 : voir le type bdd *)
-
 
 let print_arbre a =
   let rec print_arbre_aux a =
@@ -163,10 +165,61 @@ let rec liste_feuilles a =
 ;;
 
 
+(* Question 3.11 *)
 
+(* TODO: supprimer *)
+let rec parcours_suffixe a =
+  match a with
+  | Leaf(e) -> if e = true then print_string "true " else print_string "false "
+  | Node(a1, e, a2) -> 
+      parcours_suffixe a1;
+      parcours_suffixe a2;
+      printf "%d " e
+;;
 
+(* TODO : à réécrire avec des ref plutot que des noeuds *)
+(* bigint_list -> listeDejaVus -> option bdd *)
+let rec get_seconde_composante b ldv =
+  match ldv with
+  | [] -> None
+  | (lb, lpointeur)::ldv2 -> 
+      if lb = b
+      then Some lpointeur
+      else get_seconde_composante b ldv2
+;;
 
-
+(* TODO : supprimer OU à réécrire avec des ref plutot que des noeuds *)
+(* bigint_list 
+   -> bdd 
+   -> (bigint_list * bdd) listDejaVus 
+   -> (bigint_list * bdd) listDejaVus *)
+let rec overwrite_seconde_composante b new_pointeur ldv =
+  match ldv with
+  | [] -> raise (Invalid_argument "overwrite_seconde_composante: bigint not found")
+  | (lb, lpointeur)::ldv2 -> 
+      if lb = b
+      then (lb, new_pointeur)::ldv2
+      else (lb, lpointeur)::(overwrite_seconde_composante b new_pointeur ldv2)
+;;
+  
+(* TODO : à réécrire avec des ref plutot que des noeuds *)
+let rec compressionParListeAux a ldv =
+  match a with
+  | Leaf(e) -> (Leaf(e), ldv)
+  | Node(a1, e, a2) -> 
+      let (a1bis, ldv) = compressionParListeAux a1 ldv in
+      let (a2bis, ldv) = compressionParListeAux a2 ldv in
+      
+      let n = composition (liste_feuilles (Node(a1, e, a2))) in
+      let seconde_comp = (get_seconde_composante n ldv) in
+      let new_node = Node(a1bis, e, a2bis) in
+      let ldv2 =
+        match seconde_comp with
+        | None -> (n, new_node)::ldv
+        | Some pointeur -> ldv
+      in
+      (new_node, ldv2)
+;;
 
 
 (* TESTS *)
@@ -183,6 +236,9 @@ decomposition b2;;
 let b3 = [0L;38L];;
 decomposition b3;;
 
+let c2 = [pow2 2L];;
+decomposition c2;;
+
 list_of_pow 63L;;
 list_of_pow 100L;;
 list_of_pow 36L;;
@@ -194,11 +250,10 @@ composition [false; true; true; false; false; true];;
 *)
 
 
-
-open Printf
   
 let a = cons_arbre [true; false; false; false];;
 print_arbre a;;
 let la = liste_feuilles a;;
 List.iter (printf "%b ") la;;
 print_string "\n";;
+parcours_suffixe a;;
