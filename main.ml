@@ -14,8 +14,6 @@ type bdd =
 (* TODO : remplacer bdd par une ref vers un noeud *)
 type listeDejaVus = (bigint * bdd) list;;
 
-
-
 (* Question 1.1 *)
 
 let peek b =
@@ -95,16 +93,43 @@ let rec completion l n =
 
 (* Question 1.4 *)
 
-let rec composition l =
-  [let rec compo l pow =
-     match l with
-       [] -> 0L
-     | h::t ->
-         if h = false then compo t (add pow 1L)
-         else add (pow2 pow) (compo t (add pow 1L))
-   in compo l 0L]
+let paquets liste n =
+  (* par convention, on renvoie une liste vide si n = 0 *)
+  if n = 0 then []
+  else
+    (* on va parcourir la liste et la scinder aux bons endroits *)
+    let rec aux liste k = match liste with
+      | [] -> [[]]
+      | elt :: queue ->
+          (* si k est arrivé à 0, on repart de n *)
+          if k = 0 then [] :: aux liste n
+          else match (aux queue (k-1)) with
+            | [] -> failwith "ce cas ne devrait pas arriver"
+            | paquet_courant :: reste -> (elt :: paquet_courant) :: reste
+    in aux liste n
 ;;
 
+let rec composit l =
+  let rec compo l pow =
+    match l with
+      [] -> 0L
+    | h::t ->
+        if h = false then compo t (add pow 1L)
+        else add (pow2 pow) (compo t (add pow 1L))
+  in compo l 0L
+;;
+
+let rec comp ll =
+  match ll with
+    [] -> []
+  | h::t -> (composit h)::(comp t)
+;;
+
+let rec composition l =
+  match l with
+    [] -> [0L]
+  | h::t -> comp (paquets l 64)
+;;
 
 (* Question 1.5 *)
 
