@@ -14,6 +14,8 @@ type bdd =
 (* TODO : remplacer bdd par une ref vers un noeud *)
 type listeDejaVus = (bigint * bdd) list;;
 
+
+
 (* Question 1.1 *)
 
 let peek b =
