@@ -5,10 +5,10 @@ open Printf
 type bigint = int64 list;;
 
 (* Question 2.7 : Binary Decision Diagram *)
-type bdd = 
+type bdd =
   | Leaf of bool
   | Node of (bdd ref) * int * (bdd ref)
-;; 
+;;
 
 (* Question 3.10 : liste de couples (bigint * pointeur vers noeud d'un bdd) *)
 (* TODO : remplacer bdd par une ref vers un noeud *)
@@ -136,7 +136,21 @@ let rec composition l =
 (* Question 1.5 *)
 
 let table x n =
-  completion (decomposition [x]) n
+  completion (decomposition x) n
+;;
+
+(* Question 1.6 *)
+
+(* shift_n_left décalle l'entier x de n bits à gauche *)
+let shift_n_left x n =
+  mul x (pow2 n)
+;;
+
+(* genalea génère un entier encodé sur n bits, autrement dit un entier entre 0 et 2^n exclu *)
+let rec genalea n =
+  if n <= 64L then [add (Random.int64 (pow2 (div n 2L))) (shift_n_left (Random.int64 (pow2 (sub n (div n 2L)))) (div n 2L))]
+  else (genalea 64L) @ (genalea (sub n 64L))
+;;
 
 
 (* Question 2.7 : voir le type bdd *)
@@ -144,10 +158,10 @@ let table x n =
 let print_arbre a =
   let rec print_arbre_aux a =
     match a with
-    | Leaf(true) -> print_string "Leaf true" 
-    | Leaf(false) -> print_string "Leaf false" 
-    | Node(a1, b, a2) -> 
-        print_string "Node ("; 
+    | Leaf(true) -> print_string "Leaf true"
+    | Leaf(false) -> print_string "Leaf false"
+    | Node(a1, b, a2) ->
+        print_string "Node (";
         print_arbre_aux !a1;
         print_string ", ";
         print_int b;
@@ -157,28 +171,28 @@ let print_arbre a =
   in
   print_arbre_aux a;
   print_string "\n"
-;; 
+;;
 
 
 (* Question 2.8 *)
 
-(* 
+(*
   Input: bool list of size of any power of 2.
-  Output: a decision binary tree that contains the elements 
-  of the list in its leaves, ordered from left to right. 
+  Output: a decision binary tree that contains the elements
+  of the list in its leaves, ordered from left to right.
 *)
 let cons_arbre vertable =
-  
+
   let rec cons_arbre_aux vertable start_index end_index current_depth =
-    if start_index + 1 = end_index 
+    if start_index + 1 = end_index
     then Leaf(List.nth vertable start_index)
-    else 
+    else
       let mid_index = (start_index + end_index) / 2 in
       let a1 = cons_arbre_aux vertable start_index mid_index (current_depth+1) in
       let a2 = cons_arbre_aux vertable mid_index end_index (current_depth+1) in
-      Node(ref a1, current_depth, ref a2) 
+      Node(ref a1, current_depth, ref a2)
   in
-  
+
   cons_arbre_aux vertable 0 (List.length vertable) 1
 ;;
 
@@ -198,7 +212,7 @@ let rec liste_feuilles a =
 let rec parcours_suffixe a =
   match a with
   | Leaf(e) -> if e = true then print_string "true " else print_string "false "
-  | Node(a1, e, a2) -> 
+  | Node(a1, e, a2) ->
       parcours_suffixe !a1;
       parcours_suffixe !a2;
       printf "%d " e
@@ -208,7 +222,7 @@ let rec parcours_suffixe a =
 let rec get_seconde_composante b ldv =
   match ldv with
   | [] -> None
-  | (lb, lpointeur)::ldv2 -> 
+  | (lb, lpointeur)::ldv2 ->
       if lb = b
       then Some lpointeur
       else get_seconde_composante b ldv2
@@ -216,29 +230,29 @@ let rec get_seconde_composante b ldv =
 
 (*
 (* TODO : supprimer OU à réécrire avec des ref plutot que des noeuds *)
-(* bigint_list 
-   -> bdd 
-   -> (bigint_list * ref bdd) listDejaVus 
+(* bigint_list
+   -> bdd
+   -> (bigint_list * ref bdd) listDejaVus
    -> (bigint_list * ref bdd) listDejaVus *)
 let rec overwrite_seconde_composante b new_pointeur ldv =
   match ldv with
   | [] -> raise (Invalid_argument "overwrite_seconde_composante: bigint not found")
-  | (lb, lpointeur)::ldv2 -> 
+  | (lb, lpointeur)::ldv2 ->
       if lb = b
       then (lb, new_pointeur)::ldv2
       else (lb, lpointeur)::(overwrite_seconde_composante b new_pointeur ldv2)
 ;;
 *)
-  
+
 (* TODO : à réécrire avec des ref plutot que des noeuds *)
 (* bdd -> listDejaVus -> bdd *)
 let rec compressionParListeAux a ldv =
   match a with
   | Leaf(e) -> (Leaf(e), ldv)
-  | Node(a1, e, a2) -> 
+  | Node(a1, e, a2) ->
       let (a1bis, ldv) = compressionParListeAux (!a1) ldv in
       let (a2bis, ldv) = compressionParListeAux (!a2) ldv in
-      
+
       let n = composition (liste_feuilles (Node(a1, e, a2))) in
       let seconde_comp = (get_seconde_composante n ldv) in
       let new_node = Node(ref a1bis, e, ref a2bis) in
@@ -279,7 +293,7 @@ composition [false; true; true; false; false; true];;
 *)
 
 
-  
+
 let a = cons_arbre [true; true; true; false];;
 print_arbre a;;
 let la = liste_feuilles a;;
@@ -293,5 +307,3 @@ print_string "\n";;
 let (a2, ldv2) = compressionParListeAux a [];;
 print_arbre a2;
 print_string "\n";;
-
-
