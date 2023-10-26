@@ -266,59 +266,73 @@ let rec compressionParListeAux a ldv =
 ;;
 
 
+(* TODO : regrouper la partie Leaf et la partie Node sous une fonction qui prend
+  tout en argument sauf gauche et droite, et renvoie tout ce qui est modifié. 
+  Appeler cette fonction une fois depuis Leaf et une fois depuis Node. *)
+(* bdd current_node
+  -> string father_name
+  -> bool is_gauche
+  -> list (ref bdd * string) nodes_names_visited
+  -> int id
+  -> string
+Fonctionnement : 
+  Parcours suffixe de l'arbre. 
+  A chaque noeud visité, s'il n'est pas déjà dans la liste des noeuds visités, 
+  alors on lui crée un nom unique et on le concatène au string. Dans tous les cas,
+  on concatène ensuite le string correspondant au lien entre son père et lui. 
+  Et on appelle récursivement sur son fils gauche puis droit. 
+*)
 let rec toStringDotFormatAux 
-    (* string_acc *)
     current_node 
     father_name 
     is_gauche 
     nodes_names_visited 
     id =
-  match current_node with
-  | Leaf(e) ->
-      let current_string = "" in
-      let line_style = (if is_gauche then "[style=dashed]" else "") in
-      let name_option = get_second_componant_ref current_node nodes_names_visited in
-      let (name, nodes_names_visited, current_string, id) =
-        match name_option with
-        | None -> 
-            let n = Printf.sprintf "node_%d" id in 
-            let l = (current_node, n)::nodes_names_visited in
-            let s = current_string ^ Printf.sprintf "\t%s [label=%b]\n" n e in
-            let i = id + 1 in
-            (n, l, s, i)
-        | Some name_option -> 
-            (name_option, nodes_names_visited, current_string, id)
-      in let current_string = (
-        if father_name = "root" then current_string else
-        current_string ^ Printf.sprintf "\t%s -> %s %s\n" father_name name line_style)
-      in
-      (current_string, nodes_names_visited, id)
-
-  | Node(gauche, e, droite) -> 
-      let current_string = "" in
-      let line_style = (if is_gauche then "[style=dashed]" else "") in
-      let name_option = get_second_componant_ref current_node nodes_names_visited in
-      let (name, nodes_names_visited, current_string, id) =
-        match name_option with
-        | None -> 
-            let n = Printf.sprintf "node_%d" id in 
-            let l = (current_node, n)::nodes_names_visited in
-            let s = current_string ^ Printf.sprintf "\t%s [label=%d]\n" n e in
-            let i = id + 1 in
-            (n, l, s, i)
-        | Some name_option -> 
+  
+  let getNameStrListId e_str current_node father_name is_gauche nodes_names_visited id =
+    let current_string = "" in
+    let line_style = (if is_gauche then "[style=dashed]" else "") in
+    let name_option = get_second_componant_ref current_node nodes_names_visited in
+    let (name, nodes_names_visited, current_string, id) =
+      match name_option with
+      | None -> 
+          let n = Printf.sprintf "node_%d" id in 
+          let l = (current_node, n)::nodes_names_visited in
+          let s = current_string ^ Printf.sprintf "\t%s [label=%s]\n" n e_str in
+          let i = id + 1 in
+          (n, l, s, i)
+      | Some name_option -> 
           (name_option, nodes_names_visited, current_string, id)
-      in let current_string = (
-        if father_name = "root" then current_string else
-        current_string ^ Printf.sprintf "\t%s -> %s %s\n" father_name name line_style)
+    in 
+    let current_string = (
+      if father_name = "root" then current_string else
+      current_string ^ Printf.sprintf "\t%s -> %s %s\n" father_name name line_style
+    ) in
+    (name, current_string, nodes_names_visited, id)
+  in 
+    
+  match current_node with
+  | Leaf(e) -> 
+      let (name, current_string, nodes_names_visited, id) = 
+        getNameStrListId (Bool.to_string e) current_node father_name is_gauche nodes_names_visited id
+      in (current_string, nodes_names_visited, id)
+      
+  | Node(gauche, e, droite) -> 
+      let (name, current_string, nodes_names_visited, id) = 
+        getNameStrListId (string_of_int e) current_node father_name is_gauche nodes_names_visited id 
       in
-      let (gauche_string, nodes_names_visited, id) = toStringDotFormatAux (!gauche) name true nodes_names_visited id in
-      let (droite_string, nodes_names_visited, id) = toStringDotFormatAux (!droite) name false nodes_names_visited id in
+      let (gauche_string, nodes_names_visited, id) = 
+        toStringDotFormatAux (!gauche) name true nodes_names_visited id 
+      in
+      let (droite_string, nodes_names_visited, id) = 
+        toStringDotFormatAux (!droite) name false nodes_names_visited id 
+      in
       let final_string = current_string ^ gauche_string ^ droite_string in
       (final_string, nodes_names_visited, id)
 ;;
 
 
+(* Renvoie le string correspondant à la description de l'arbre au format dot *)
 let toStringDotFormat current_node =
   let (node_str, _, _) = toStringDotFormatAux current_node "root" false [] 1 in
   "digraph Q {\n" ^ node_str ^ "}\n"
