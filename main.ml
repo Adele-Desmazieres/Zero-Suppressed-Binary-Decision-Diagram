@@ -205,13 +205,26 @@ let rec parcours_suffixe a =
 ;;
 
 (* bigint_list -> listeDejaVus -> option ref bdd *)
-let rec get_seconde_composante b ldv =
+let rec get_second_componant b ldv =
   match ldv with
   | [] -> None
   | (lb, lpointeur)::ldv2 -> 
       if lb = b
       then Some lpointeur
-      else get_seconde_composante b ldv2
+      else get_second_componant b ldv2
+;;
+
+(* IDEM mais == au lieu de = *)
+(* TODO : regrouper cette fonction avec la précédente avec un argument 
+  en plus pour indiquer test d'égalité structurelle (=) ou d'égalité physique (==) *)
+(* TODO : renommer les variables dans le code et génériser les types (en 'a) dans commentaires *)
+let rec get_second_componant_ref target_first_comp pairs_list =
+  match pairs_list with
+  | [] -> None
+  | (first_comp, second_comp)::pairs_list2 -> 
+      if first_comp == target_first_comp
+      then Some second_comp
+      else get_second_componant_ref target_first_comp pairs_list2
 ;;
 
 (*
@@ -229,8 +242,10 @@ let rec overwrite_seconde_composante b new_pointeur ldv =
       else (lb, lpointeur)::(overwrite_seconde_composante b new_pointeur ldv2)
 ;;
 *)
-  
-(* TODO : à réécrire avec des ref plutot que des noeuds *)
+
+(* TODO : compléter avec la regle suivante "Si la deuxième moitié de la 
+liste ne contient que des valeurs false alors remplacer le pointeur vers N 
+(depuis son parent) vers un pointeur vers l’enfant gauche de N" *)
 (* bdd -> listDejaVus -> bdd *)
 let rec compressionParListeAux a ldv =
   match a with
@@ -240,7 +255,7 @@ let rec compressionParListeAux a ldv =
       let (a2bis, ldv) = compressionParListeAux (!a2) ldv in
       
       let n = composition (liste_feuilles (Node(a1, e, a2))) in
-      let seconde_comp = (get_seconde_composante n ldv) in
+      let seconde_comp = (get_second_componant n ldv) in
       let new_node = Node(ref a1bis, e, ref a2bis) in
       let ldv2 =
         match seconde_comp with
@@ -249,6 +264,68 @@ let rec compressionParListeAux a ldv =
       in
       (new_node, ldv2)
 ;;
+
+
+let rec toStringDotFormatAux 
+    (* string_acc *)
+    current_node 
+    father_name 
+    is_gauche 
+    nodes_names_visited 
+    id =
+  match current_node with
+  | Leaf(e) ->
+      let current_string = "" in
+      let line_style = (if is_gauche then "[style=dashed]" else "") in
+      let name_option = get_second_componant_ref current_node nodes_names_visited in
+      let (name, nodes_names_visited, current_string, id) =
+        match name_option with
+        | None -> 
+            let n = Printf.sprintf "node_%d" id in 
+            let l = (current_node, n)::nodes_names_visited in
+            let s = current_string ^ Printf.sprintf "\t%s [label=%b]\n" n e in
+            let i = id + 1 in
+            (n, l, s, i)
+        | Some name_option -> 
+            (name_option, nodes_names_visited, current_string, id)
+      in let current_string = (
+        if father_name = "root" then current_string else
+        current_string ^ Printf.sprintf "\t%s -> %s %s\n" father_name name line_style)
+      in
+      (current_string, nodes_names_visited, id)
+
+  | Node(gauche, e, droite) -> 
+      let current_string = "" in
+      let line_style = (if is_gauche then "[style=dashed]" else "") in
+      let name_option = get_second_componant_ref current_node nodes_names_visited in
+      let (name, nodes_names_visited, current_string, id) =
+        match name_option with
+        | None -> 
+            let n = Printf.sprintf "node_%d" id in 
+            let l = (current_node, n)::nodes_names_visited in
+            let s = current_string ^ Printf.sprintf "\t%s [label=%d]\n" n e in
+            let i = id + 1 in
+            (n, l, s, i)
+        | Some name_option -> 
+          (name_option, nodes_names_visited, current_string, id)
+      in let current_string = (
+        if father_name = "root" then current_string else
+        current_string ^ Printf.sprintf "\t%s -> %s %s\n" father_name name line_style)
+      in
+      let (gauche_string, nodes_names_visited, id) = toStringDotFormatAux (!gauche) name true nodes_names_visited id in
+      let (droite_string, nodes_names_visited, id) = toStringDotFormatAux (!droite) name false nodes_names_visited id in
+      let final_string = current_string ^ gauche_string ^ droite_string in
+      (final_string, nodes_names_visited, id)
+;;
+
+
+let toStringDotFormat current_node =
+  let (node_str, _, _) = toStringDotFormatAux current_node "root" false [] 1 in
+  "digraph Q {\n" ^ node_str ^ "}\n"
+;;
+
+
+
 
 
 (* TESTS *)
@@ -279,7 +356,7 @@ composition [false; true; true; false; false; true];;
 *)
 
 
-  
+
 let a = cons_arbre [true; true; true; false];;
 print_arbre a;;
 let la = liste_feuilles a;;
@@ -291,7 +368,17 @@ print_string "\n";;
 
 
 let (a2, ldv2) = compressionParListeAux a [];;
-print_arbre a2;
+print_arbre a2;;
 print_string "\n";;
 
+
+let a_str = toStringDotFormat a;;
+print_string a_str;;
+
+let a2_str = toStringDotFormat a2;;
+print_string a2_str;;
+
+let n2 = Leaf(true);;
+let n1 = Node(ref n2, 1, ref n2);;
+print_string (toStringDotFormat n1);;
 
