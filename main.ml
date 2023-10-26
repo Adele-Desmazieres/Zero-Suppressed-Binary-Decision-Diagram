@@ -383,9 +383,10 @@ print_string "\n";;
 
 let (a2, ldv2) = compressionParListeAux a [];;
 print_arbre a2;;
+List.iter (fun (a, b) -> print_bigint a) ldv2;;
 print_string "\n";;
 
-
+(*
 let a_str = toStringDotFormat a;;
 print_string a_str;;
 
@@ -395,4 +396,4 @@ print_string a2_str;;
 let n2 = Leaf(true);;
 let n1 = Node(ref n2, 1, ref n2);;
 print_string (toStringDotFormat n1);;
-
+*)
