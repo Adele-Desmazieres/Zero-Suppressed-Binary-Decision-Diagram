@@ -266,9 +266,6 @@ let rec compressionParListeAux a ldv =
 ;;
 
 
-(* TODO : regrouper la partie Leaf et la partie Node sous une fonction qui prend
-  tout en argument sauf gauche et droite, et renvoie tout ce qui est modifié. 
-  Appeler cette fonction une fois depuis Leaf et une fois depuis Node. *)
 (* bdd current_node
   -> string father_name
   -> bool is_gauche
@@ -276,11 +273,11 @@ let rec compressionParListeAux a ldv =
   -> int id
   -> string
 Fonctionnement : 
-  Parcours suffixe de l'arbre. 
+  Parcours préfixe de l'arbre. 
   A chaque noeud visité, s'il n'est pas déjà dans la liste des noeuds visités, 
-  alors on lui crée un nom unique et on le concatène au string. Dans tous les cas,
+  alors on lui crée un nom unique qu'on concatène au string renvoyé. Dans tous les cas,
   on concatène ensuite le string correspondant au lien entre son père et lui. 
-  Et on appelle récursivement sur son fils gauche puis droit. 
+  On appelle récursivement sur son fils gauche puis son fils droit. 
 *)
 let rec toStringDotFormatAux 
     current_node 
