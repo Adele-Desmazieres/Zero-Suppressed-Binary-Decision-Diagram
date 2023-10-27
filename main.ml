@@ -227,29 +227,31 @@ let rec get_second_componant_ref target_first_comp pairs_list =
       else get_second_componant_ref target_first_comp pairs_list2
 ;;
 
-(*
-(* TODO : supprimer OU à réécrire avec des ref plutot que des noeuds *)
-(* bigint_list 
-   -> bdd 
-   -> (bigint_list * ref bdd) listDejaVus 
-   -> (bigint_list * ref bdd) listDejaVus *)
-let rec overwrite_seconde_composante b new_pointeur ldv =
-  match ldv with
-  | [] -> raise (Invalid_argument "overwrite_seconde_composante: bigint not found")
-  | (lb, lpointeur)::ldv2 -> 
-      if lb = b
-      then (lb, new_pointeur)::ldv2
-      else (lb, lpointeur)::(overwrite_seconde_composante b new_pointeur ldv2)
-;;
-*)
 
+(* TODO : faire fonctionner ce truc de mort... En gros il faut que je 
+traite les cas des fils quand je suis dans le père, ce qui multiplie le 
+nombre de cas à traiter, mais permet d'accéder au fils du fils
+durant la reconstruction de l'arbre par exemple. *)
 (* TODO : compléter avec la regle suivante "Si la deuxième moitié de la 
 liste ne contient que des valeurs false alors remplacer le pointeur vers N 
 (depuis son parent) vers un pointeur vers l’enfant gauche de N" *)
 (* bdd -> listDejaVus -> bdd *)
-let rec compressionParListeAux a ldv =
-  match a with
-  | Leaf(e) -> (Leaf(e), ldv)
+let rec compressionParListeAux current_node ldv =
+  match current_node with
+  | Leaf(e) -> 
+      let n = (if e then [1L] else [0L]) in
+      let seconde_comp = (get_second_componant n ldv) in
+      let new_node = Leaf(e) in
+      let ldv2 =
+        match seconde_comp with
+        | None -> (n, ref new_node)::ldv
+        | Some pointeur -> ldv
+      in
+      Printf.printf "\nvisite : (";
+      print_bigint n;
+      Printf.printf "%b)" e;
+      (new_node, ldv2)
+  
   | Node(a1, e, a2) -> 
       let (a1bis, ldv) = compressionParListeAux (!a1) ldv in
       let (a2bis, ldv) = compressionParListeAux (!a2) ldv in
@@ -259,11 +261,15 @@ let rec compressionParListeAux a ldv =
       let new_node = Node(ref a1bis, e, ref a2bis) in
       let ldv2 =
         match seconde_comp with
-        | None -> (n, new_node)::ldv
+        | None -> (n, ref new_node)::ldv
         | Some pointeur -> ldv
       in
+      Printf.printf "\nvisite : (";
+      print_bigint n;
+      Printf.printf "%d)" e;
       (new_node, ldv2)
 ;;
+
 
 
 (* bdd current_node
@@ -281,12 +287,12 @@ Fonctionnement :
 *)
 let rec toStringDotFormatAux 
     current_node 
-    father_name 
     is_gauche 
+    father_name 
     nodes_names_visited 
     id =
   
-  let getNameStrListId e_str current_node father_name is_gauche nodes_names_visited id =
+  let getNameStrListId e_str current_node is_gauche father_name nodes_names_visited id =
     let current_string = "" in
     let line_style = (if is_gauche then "[style=dashed]" else "") in
     let name_option = get_second_componant_ref current_node nodes_names_visited in
@@ -311,18 +317,18 @@ let rec toStringDotFormatAux
   match current_node with
   | Leaf(e) -> 
       let (name, current_string, nodes_names_visited, id) = 
-        getNameStrListId (Bool.to_string e) current_node father_name is_gauche nodes_names_visited id
+        getNameStrListId (Bool.to_string e) current_node is_gauche father_name nodes_names_visited id
       in (current_string, nodes_names_visited, id)
       
   | Node(gauche, e, droite) -> 
       let (name, current_string, nodes_names_visited, id) = 
-        getNameStrListId (string_of_int e) current_node father_name is_gauche nodes_names_visited id 
+        getNameStrListId (string_of_int e) current_node is_gauche father_name nodes_names_visited id 
       in
       let (gauche_string, nodes_names_visited, id) = 
-        toStringDotFormatAux (!gauche) name true nodes_names_visited id 
+        toStringDotFormatAux (!gauche) true name nodes_names_visited id 
       in
       let (droite_string, nodes_names_visited, id) = 
-        toStringDotFormatAux (!droite) name false nodes_names_visited id 
+        toStringDotFormatAux (!droite) false name nodes_names_visited id 
       in
       let final_string = current_string ^ gauche_string ^ droite_string in
       (final_string, nodes_names_visited, id)
@@ -331,7 +337,7 @@ let rec toStringDotFormatAux
 
 (* Renvoie le string correspondant à la description de l'arbre au format dot *)
 let toStringDotFormat current_node =
-  let (node_str, _, _) = toStringDotFormatAux current_node "root" false [] 1 in
+  let (node_str, _, _) = toStringDotFormatAux current_node false "root" [] 1 in
   "digraph Q {\n" ^ node_str ^ "}\n"
 ;;
 
@@ -368,7 +374,7 @@ composition [false; true; true; false; false; true];;
 
 
 
-let a = cons_arbre [true; true; true; false];;
+(* let a = cons_arbre [true; true; true; false];;
 print_arbre a;;
 let la = liste_feuilles a;;
 List.iter (printf "%b ") la;;
@@ -377,20 +383,34 @@ parcours_suffixe a;;
 print_string "\n";;
 print_string "\n";;
 
-
 let (a2, ldv2) = compressionParListeAux a [];;
 print_arbre a2;;
-List.iter (fun (a, b) -> print_bigint a) ldv2;;
 print_string "\n";;
+List.iter (fun (a, b) -> print_bigint a) ldv2;;
+print_string "\n\n";;
 
-(*
 let a_str = toStringDotFormat a;;
-print_string a_str;;
+(* print_string a_str;; *)
 
 let a2_str = toStringDotFormat a2;;
 print_string a2_str;;
-
+(* 
 let n2 = Leaf(true);;
 let n1 = Node(ref n2, 1, ref n2);;
 print_string (toStringDotFormat n1);;
-*)
+ *) *)
+
+let a3 = cons_arbre [true; true];;
+let (a3c, ldv3) = compressionParListeAux a3 [];;
+print_string "\nldv3 = ";;
+List.iter (fun (a, b) -> 
+    print_string "(";
+    print_bigint a;
+    print_string ""; 
+    let () = match (!b) with 
+      | Leaf(e) -> print_string (string_of_bool e)
+      | Node(a1, e, a2) -> print_int e in
+    print_string "), " )
+ldv3;;
+print_string "\n\n";;
+print_string (toStringDotFormat a3);;
