@@ -204,6 +204,7 @@ let rec parcours_suffixe a =
       printf "%d " e
 ;;
 
+(* TODO : renommer les variables dans le code et génériser les types (en 'a) dans commentaires *)
 (* bigint_list -> listeDejaVus -> option ref bdd *)
 let rec get_second_componant b ldv =
   match ldv with
@@ -217,7 +218,6 @@ let rec get_second_componant b ldv =
 (* IDEM mais == au lieu de = *)
 (* TODO : regrouper cette fonction avec la précédente avec un argument 
   en plus pour indiquer test d'égalité structurelle (=) ou d'égalité physique (==) *)
-(* TODO : renommer les variables dans le code et génériser les types (en 'a) dans commentaires *)
 let rec get_second_componant_ref target_first_comp pairs_list =
   match pairs_list with
   | [] -> None
@@ -228,49 +228,48 @@ let rec get_second_componant_ref target_first_comp pairs_list =
 ;;
 
 
-(* TODO : faire fonctionner ce truc de mort... En gros il faut que je 
-traite les cas des fils quand je suis dans le père, ce qui multiplie le 
-nombre de cas à traiter, mais permet d'accéder au fils du fils
-durant la reconstruction de l'arbre par exemple. *)
-(* TODO : compléter avec la regle suivante "Si la deuxième moitié de la 
-liste ne contient que des valeurs false alors remplacer le pointeur vers N 
-(depuis son parent) vers un pointeur vers l’enfant gauche de N" *)
-(* bdd -> listDejaVus -> bdd *)
-let rec compressionParListeAux current_node ldv =
-  match current_node with
-  | Leaf(e) -> 
-      let n = (if e then [1L] else [0L]) in
-      let seconde_comp = (get_second_componant n ldv) in
-      let new_node = Leaf(e) in
-      let ldv2 =
-        match seconde_comp with
-        | None -> (n, ref new_node)::ldv
-        | Some pointeur -> ldv
-      in
-      Printf.printf "\nvisite : (";
-      print_bigint n;
-      Printf.printf "%b)" e;
-      (new_node, ldv2)
-  
-  | Node(a1, e, a2) -> 
-      let (a1bis, ldv) = compressionParListeAux (!a1) ldv in
-      let (a2bis, ldv) = compressionParListeAux (!a2) ldv in
-      
-      let n = composition (liste_feuilles (Node(a1, e, a2))) in
-      let seconde_comp = (get_second_componant n ldv) in
-      let new_node = Node(ref a1bis, e, ref a2bis) in
-      let ldv2 =
-        match seconde_comp with
-        | None -> (n, ref new_node)::ldv
-        | Some pointeur -> ldv
-      in
-      Printf.printf "\nvisite : (";
-      print_bigint n;
-      Printf.printf "%d)" e;
-      (new_node, ldv2)
+
+(* Si la val du sous-arbre est dans ldv, 
+  renvoie une ref vers sa seconde composante, et ldv inchangée.
+  Sinon renvoie une ref vers le noeud, et ldv à laquelle (val, ref noeud) a été ajouté. *)
+let treatNodeCompression current_node ldv =
+  let n = composition (liste_feuilles current_node) in
+  let seconde_comp = (get_second_componant n ldv) in
+  match seconde_comp with
+  | None -> 
+      Printf.printf "Nouveau bigint \n" ; 
+      let pointeur = ref current_node in
+      (pointeur, (n, pointeur)::ldv)
+  | Some pointeur -> Printf.printf "Old bigint \n" ; (pointeur, ldv)
 ;;
 
-
+(* Renvoie le nouvel arbre compressé et 
+  la liste des couples (bigint, bdd) des noeuds visités. *)
+(* bdd -> listDejaVus -> (bdd, listDejaVus) *)
+let rec compressionParListeAux current_node ldv =
+  let (new_node, ldv) =
+    match current_node with
+    | Leaf(e) -> (current_node, ldv)
+    | Node(g, e, d) -> 
+        let (g1, ldv) = 
+          match !g with
+          | Leaf(_) -> (g, ldv)
+          | Node(_, _, _) -> compressionParListeAux (!g) ldv
+        in
+        let (d1, ldv) = 
+          match !d with
+          | Leaf(_) -> (d, ldv)
+          | Node(_, _, _) -> compressionParListeAux (!d) ldv
+        in
+        let (g1_treated, ldv) = treatNodeCompression (!g1) ldv in
+        let (d1_treated, ldv) = treatNodeCompression (!d1) ldv in
+        Printf.printf "fils égaux == ? %b\n" (g1_treated == d1_treated);
+        Printf.printf "ref fils égales = ? %b\n" (ref g1_treated = ref d1_treated);
+        let new_node = Node(g1_treated, e, d1_treated) in
+        (new_node, ldv)
+  in
+  (ref new_node, ldv)
+;;
 
 (* bdd current_node
   -> string father_name
@@ -394,16 +393,19 @@ let a_str = toStringDotFormat a;;
 
 let a2_str = toStringDotFormat a2;;
 print_string a2_str;;
-(* 
-let n2 = Leaf(true);;
-let n1 = Node(ref n2, 1, ref n2);;
-print_string (toStringDotFormat n1);;
- *) *)
+*)
 
-let a3 = cons_arbre [true; true];;
-let (a3c, ldv3) = compressionParListeAux a3 [];;
-print_string "\nldv3 = ";;
-List.iter (fun (a, b) -> 
+let n2 = Leaf(true);;
+let n3 = n2;;
+let n4 = n2;;
+Printf.printf "fils égaux ? %b\n" (n3 == n4);;
+Printf.printf "ref fils égales ? %b\n" (ref n3 = ref n4);;
+let n1 = Node(ref n3, 1, ref n4);;
+print_string (toStringDotFormat n1);;
+
+let print_ldv ldv = 
+  print_string "\nldv3 = ";
+  List.iter (fun (a, b) -> 
     print_string "(";
     print_bigint a;
     print_string ""; 
@@ -411,6 +413,12 @@ List.iter (fun (a, b) ->
       | Leaf(e) -> print_string (string_of_bool e)
       | Node(a1, e, a2) -> print_int e in
     print_string "), " )
-ldv3;;
+  ldv
+;;
+
+(* let a3 = cons_arbre [true; false];; *)
+let a3 = cons_arbre [true; true; false; true; false; true; false; false; true; false; true; false; false; true; true; false]
+let (a3c, ldv3) = compressionParListeAux a3 [];;
+print_ldv ldv3;;
 print_string "\n\n";;
-print_string (toStringDotFormat a3);;
+print_string (toStringDotFormat !a3c);;
