@@ -14,7 +14,18 @@ type bdd =
 (* TODO : remplacer bdd par une ref vers un noeud *)
 type listeDejaVus = (bigint * bdd) list;;
 
+(* Fonctions auxiliaires *)
 
+let rec pow2 n =
+  match n with
+    0L -> 1L
+  | _ -> mul 2L (pow2 (sub n 1L))
+;;
+
+let rec list_of_pow n =
+  if n < 64L then [pow2 n]
+  else 0L::(list_of_pow (sub n 64L))
+;;
 
 (* Question 1.1 *)
 
@@ -48,39 +59,54 @@ let rec print_bigint b =
 
 (* Question 1.2 *)
 
+let rec modulo_int64_basic x y =
+  if ((x >= 0L && y > 0L) || (x < 0L && y < 0L)) then sub x (mul (div x y) y)
+  else modulo_int64_basic (add (modulo_int64_basic x (sub 0L y)) y) y
+;;
+
 let rec modulo_int64 x y =
-  if compare x y = -1
-  then x
-  else modulo_int64 (sub x y) y
+  if (x >= 0L && y > 0L) then modulo_int64_basic x y
+  else if (x < 0L && y > 0L)
+  then modulo_int64_basic (add (modulo_int64_basic (sub (pow2 63L) 1L) y) (modulo_int64 (sub x (sub (pow2 63L) 1L)) y)) y
+  else if (x >= 0L && y < 0L) then x
+  else if (x < y) then x
+  else sub x y
 ;;
 
 let rec decomposition_int64 x =
   if x = 0L then [false]
   else if x = 1L then [true]
   else if (modulo_int64 x 2L) = 1L
-  then true::(decomposition_int64 (div x 2L))
-  else false::(decomposition_int64 (div x 2L))
+  then
+    if (x >= 0L) then true::(decomposition_int64 (div x 2L))
+    else true::(decomposition_int64 (sub (add (pow2 63L) (div x 2L)) 1L))
+  else if (x >= 0L) then false::(decomposition_int64 (div x 2L))
+  else false::(decomposition_int64 (add (pow2 63L) (div x 2L)))
 ;;
+
+let dec_64_int64 x =
+  let rec decompos x n =
+    match n with
+      0 -> []
+    | _ ->
+        if (modulo_int64 x 2L) = 1L
+        then
+          if (x >= 0L) then true::(decompos (div x 2L) (n-1))
+          else true::(decompos (sub (add (pow2 63L) (div x 2L)) 1L) (n-1))
+        else if (x >= 0L) then false::(decompos (div x 2L) (n-1))
+        else false::(decompos (add (pow2 63L) (div x 2L)) (n-1))
+  in
+  decompos x 64
+;;
+
 
 let rec decomposition b =
   match b with
   | [] -> []
-  | x::b2 -> decomposition_int64 x @ decomposition b2
+  | [x] -> decomposition_int64 x
+  | x::y::b2 -> dec_64_int64 x @ decomposition (y::b2)
 ;;
 
-
-(* Fonctions auxiliaires *)
-
-let rec pow2 n =
-  match n with
-    0L -> 1L
-  | _ -> mul 2L (pow2 (sub n 1L))
-;;
-
-let rec list_of_pow n =
-  if n < 64L then [pow2 n]
-  else 0L::(list_of_pow (sub n 64L))
-;;
 
 
 (* Question 1.3 *)
@@ -136,8 +162,22 @@ let rec composition l =
 (* Question 1.5 *)
 
 let table x n =
-  completion (decomposition [x]) n
+  completion (decomposition x) n
+;;
 
+(* Question 1.6 *)
+
+(* shift_n_left décalle l'entier x de n bits à gauche *)
+let shift_n_left x n =
+  mul x (pow2 n)
+;;
+
+(* genalea génère un entier encodé sur n bits, autrement dit un entier entre 0 et 2^n exclu *)
+let rec genalea n =
+  if n <= 64L then let v = add (Random.int64 (pow2 (div n 2L))) (shift_n_left (Random.int64 (pow2 (sub n (div n 2L)))) (div n 2L))
+    in if v = 0L then [] else [v]
+  else (genalea 64L) @ (genalea (sub n 64L))
+;;
 
 (* Question 2.7 : voir le type bdd *)
 
