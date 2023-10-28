@@ -335,40 +335,45 @@ let rec toStringDotFormatAux
     let current_string = "" in
     let line_style = (if is_gauche then "[style=dashed]" else "") in
     let name_option = get_second_componant_ref current_node nodes_names_visited in
-    let (name, nodes_names_visited, current_string, id) =
+    let (name, nodes_names_visited, current_string, id, already_visited) =
       match name_option with
       | None -> 
           let n = Printf.sprintf "node_%d" id in 
           let l = (current_node, n)::nodes_names_visited in
           let s = current_string ^ Printf.sprintf "\t%s [label=%s]\n" n e_str in
           let i = id + 1 in
-          (n, l, s, i)
+          let v = false in
+          (n, l, s, i, v)
       | Some name_option -> 
-          (name_option, nodes_names_visited, current_string, id)
+          (name_option, nodes_names_visited, current_string, id, true)
     in 
     let current_string = (
       if father_name = "root" then current_string else
       current_string ^ Printf.sprintf "\t%s -> %s %s\n" father_name name line_style
     ) in
-    (name, current_string, nodes_names_visited, id)
+    (name, current_string, nodes_names_visited, id, already_visited)
   in 
     
   match current_node with
   | Leaf(e) -> 
-      let (name, current_string, nodes_names_visited, id) = 
+      let (name, current_string, nodes_names_visited, id, already_visited) = 
         getNameStrListId (Bool.to_string e) current_node is_gauche father_name nodes_names_visited id
       in (current_string, nodes_names_visited, id)
       
   | Node(gauche, e, droite) -> 
-      let (name, current_string, nodes_names_visited, id) = 
-        getNameStrListId (string_of_int e) current_node is_gauche father_name nodes_names_visited id 
-      in
-      let (gauche_string, nodes_names_visited, id) = 
-        toStringDotFormatAux (!gauche) true name nodes_names_visited id 
-      in
-      let (droite_string, nodes_names_visited, id) = 
-        toStringDotFormatAux (!droite) false name nodes_names_visited id 
-      in
+      let (name, current_string, nodes_names_visited, id, already_visited) = 
+        getNameStrListId (string_of_int e) current_node is_gauche father_name nodes_names_visited id in
+        
+      let (gauche_string, nodes_names_visited, id) = (
+        if not already_visited
+        then toStringDotFormatAux (!gauche) true name nodes_names_visited id 
+        else ("", nodes_names_visited, id)) in
+      
+      let (droite_string, nodes_names_visited, id) = (
+        if not already_visited
+        then toStringDotFormatAux (!droite) false name nodes_names_visited id 
+        else ("", nodes_names_visited, id)) in
+        
       let final_string = current_string ^ gauche_string ^ droite_string in
       (final_string, nodes_names_visited, id)
 ;;
@@ -435,12 +440,22 @@ let a2_str = toStringDotFormat a2;;
 print_string a2_str;;
 *)
 
-let n2 = Leaf(true);;
-let n3 = n2;;
-let n4 = n2;;
-Printf.printf "fils égaux ? %b\n" (n3 == n4);;
-Printf.printf "ref fils égales ? %b\n" (ref n3 = ref n4);;
-let n1 = Node(ref n3, 1, ref n4);;
+let n50 = Leaf(false);;
+let n51 = Leaf(true);;
+let n41 = Node(ref n50, 4, ref n51);;
+let n42 = Node(ref n51, 4, ref n51);;
+let n31 = Node(ref n42, 3, ref n41);;
+let n32 = Node(ref n41, 3, ref n51);;
+let n33 = Node(ref n51, 3, ref n51);;
+let n21 = Node(ref n31, 2, ref n41);;
+let n22 = Node(ref n33, 2, ref n32);;
+let n1 = Node(ref n21, 1, ref n22);;
+
+(* let n3 = n2;; *)
+(* let n4 = n2;; *)
+(* Printf.printf "fils égaux ? %b\n" (n3 == n4);; *)
+(* Printf.printf "ref fils égales ? %b\n" (ref n3 = ref n4);; *)
+(* let n1 = Node(ref n3, 1, ref n4);; *)
 print_string (toStringDotFormat n1);;
 
 let print_ldv ldv = 
