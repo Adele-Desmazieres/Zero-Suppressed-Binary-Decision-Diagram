@@ -234,53 +234,32 @@ let rec liste_feuilles a =
 
 (* Question 3.11 *)
 
-(* TODO: supprimer *)
-let rec parcours_suffixe a =
-  match a with
-  | Leaf(e) -> if e = true then print_string "true " else print_string "false "
-  | Node(a1, e, a2) -> 
-      parcours_suffixe !a1;
-      parcours_suffixe !a2;
-      printf "%d " e
-;;
-
-(* TODO : renommer les variables dans le code et génériser les types (en 'a) dans commentaires *)
+(* Renvoie la deuxième composante du couple de la liste qui respecte cette condition :
+   (1ère_comp_recherchée operator 1ère_comp_de_la_liste) est vraie *)
 (* bigint_list -> listeDejaVus -> option ref bdd *)
-let rec get_second_componant b ldv =
-  match ldv with
-  | [] -> None
-  | (lb, lpointeur)::ldv2 -> 
-      if lb = b
-      then Some lpointeur
-      else get_second_componant b ldv2
-;;
-
-(* IDEM mais == au lieu de = *)
-(* TODO : regrouper cette fonction avec la précédente avec un argument 
-  en plus pour indiquer test d'égalité structurelle (=) ou d'égalité physique (==) *)
-let rec get_second_componant_ref target_first_comp pairs_list =
+let rec get_second_componant target_first_comp operator pairs_list =
   match pairs_list with
   | [] -> None
   | (first_comp, second_comp)::pairs_list2 -> 
-      if first_comp == target_first_comp
+      if operator target_first_comp first_comp
       then Some second_comp
-      else get_second_componant_ref target_first_comp pairs_list2
+      else get_second_componant target_first_comp operator pairs_list2
 ;;
-
-
 
 (* Si la val du sous-arbre est dans ldv, 
   renvoie une ref vers sa seconde composante, et ldv inchangée.
   Sinon renvoie une ref vers le noeud, et ldv à laquelle (val, ref noeud) a été ajouté. *)
 let treatNodeCompression current_node ldv =
   let n = composition (liste_feuilles current_node) in
-  let seconde_comp = (get_second_componant n ldv) in
+  let seconde_comp = (get_second_componant n (=) ldv) in
   match seconde_comp with
   | None -> 
-      Printf.printf "Nouveau bigint \n" ; 
+      (* Printf.printf "Nouveau bigint \n" ;  *)
       let pointeur = ref current_node in
       (pointeur, (n, pointeur)::ldv)
-  | Some pointeur -> Printf.printf "Old bigint \n" ; (pointeur, ldv)
+  | Some pointeur -> 
+      (* Printf.printf "Old bigint \n" ;  *)
+      (pointeur, ldv)
 ;;
 
 (* Renvoie le nouvel arbre compressé et 
@@ -303,13 +282,18 @@ let rec compressionParListeAux current_node ldv =
         in
         let (g1_treated, ldv) = treatNodeCompression (!g1) ldv in
         let (d1_treated, ldv) = treatNodeCompression (!d1) ldv in
-        Printf.printf "fils égaux == ? %b\n" (g1_treated == d1_treated);
-        Printf.printf "ref fils égales = ? %b\n" (ref g1_treated = ref d1_treated);
+        (* Printf.printf "fils égaux == ? %b\n" (g1_treated == d1_treated); *)
+        (* Printf.printf "ref fils égales = ? %b\n" (ref g1_treated = ref d1_treated); *)
         let new_node = Node(g1_treated, e, d1_treated) in
         (new_node, ldv)
   in
   (ref new_node, ldv)
 ;;
+
+
+let compressionParListe arbre =
+  let (new_arbre, ldv) = compressionParListeAux arbre [] in new_arbre;;
+
 
 (* bdd current_node
   -> string father_name
@@ -334,13 +318,21 @@ let rec toStringDotFormatAux
   let getNameStrListId e_str current_node is_gauche father_name nodes_names_visited id =
     let current_string = "" in
     let line_style = (if is_gauche then "[style=dashed]" else "") in
-    let name_option = get_second_componant_ref current_node nodes_names_visited in
+    let name_option = get_second_componant current_node (==) nodes_names_visited in
     let (name, nodes_names_visited, current_string, id, already_visited) =
       match name_option with
       | None -> 
           let n = Printf.sprintf "node_%d" id in 
           let l = (current_node, n)::nodes_names_visited in
-          let s = current_string ^ Printf.sprintf "\t%s [label=%s]\n" n e_str in
+          let s0 = (
+            if e_str = "true" 
+            then Printf.sprintf "\t%s [label=%s,  style=\"filled\", fillcolor=\"green\"]\n" n e_str 
+            else if e_str = "false"
+            then Printf.sprintf "\t%s [label=%s,  style=\"filled\", fillcolor=\"red\"]\n" n e_str 
+            else Printf.sprintf "\t%s [label=%s]\n" n e_str 
+            )
+          in
+          let s = current_string ^ s0 in
           let i = id + 1 in
           let v = false in
           (n, l, s, i, v)
@@ -389,7 +381,7 @@ let toStringDotFormat current_node =
 
 
 
-(* TESTS *)
+(* TESTS PARTIES 1 ET 2 *)
 (*
 let b = [23L; 6L];;
 let b = insert 4L b;;
@@ -417,28 +409,7 @@ composition [false; true; true; false; false; true];;
 *)
 
 
-
-(* let a = cons_arbre [true; true; true; false];;
-print_arbre a;;
-let la = liste_feuilles a;;
-List.iter (printf "%b ") la;;
-print_string "\n";;
-parcours_suffixe a;;
-print_string "\n";;
-print_string "\n";;
-
-let (a2, ldv2) = compressionParListeAux a [];;
-print_arbre a2;;
-print_string "\n";;
-List.iter (fun (a, b) -> print_bigint a) ldv2;;
-print_string "\n\n";;
-
-let a_str = toStringDotFormat a;;
-(* print_string a_str;; *)
-
-let a2_str = toStringDotFormat a2;;
-print_string a2_str;;
-*)
+(* TESTS PARTIE 3 *)
 
 let n50 = Leaf(false);;
 let n51 = Leaf(true);;
@@ -471,8 +442,9 @@ let print_ldv ldv =
   ldv
 ;;
 
-(* let a3 = cons_arbre [true; false];; *)
-let a3 = cons_arbre [true; true; false; true; false; true; false; false; true; false; true; false; false; true; true; false]
+(* let a3 = cons_arbre [true; true; true; false];; *)
+let a3 = cons_arbre [true; true; false; true; false; true; false; false; true; false; true; false; false; true; true; false];;
+print_string (toStringDotFormat a3);;
 let (a3c, ldv3) = compressionParListeAux a3 [];;
 print_ldv ldv3;;
 print_string "\n\n";;
