@@ -14,7 +14,18 @@ type bdd =
 (* TODO : remplacer bdd par une ref vers un noeud *)
 type listeDejaVus = (bigint * bdd) list;;
 
+(* Fonctions auxiliaires *)
 
+let rec pow2 n =
+  match n with
+    0L -> 1L
+  | _ -> mul 2L (pow2 (sub n 1L))
+;;
+
+let rec list_of_pow n =
+  if n < 64L then [pow2 n]
+  else 0L::(list_of_pow (sub n 64L))
+;;
 
 (* Question 1.1 *)
 
@@ -48,39 +59,54 @@ let rec print_bigint b =
 
 (* Question 1.2 *)
 
+let rec modulo_int64_basic x y =
+  if ((x >= 0L && y > 0L) || (x < 0L && y < 0L)) then sub x (mul (div x y) y)
+  else modulo_int64_basic (add (modulo_int64_basic x (sub 0L y)) y) y
+;;
+
 let rec modulo_int64 x y =
-  if compare x y = -1
-  then x
-  else modulo_int64 (sub x y) y
+  if (x >= 0L && y > 0L) then modulo_int64_basic x y
+  else if (x < 0L && y > 0L)
+  then modulo_int64_basic (add (modulo_int64_basic (sub (pow2 63L) 1L) y) (modulo_int64 (sub x (sub (pow2 63L) 1L)) y)) y
+  else if (x >= 0L && y < 0L) then x
+  else if (x < y) then x
+  else sub x y
 ;;
 
 let rec decomposition_int64 x =
   if x = 0L then [false]
   else if x = 1L then [true]
   else if (modulo_int64 x 2L) = 1L
-  then true::(decomposition_int64 (div x 2L))
-  else false::(decomposition_int64 (div x 2L))
+  then
+    if (x >= 0L) then true::(decomposition_int64 (div x 2L))
+    else true::(decomposition_int64 (sub (add (pow2 63L) (div x 2L)) 1L))
+  else if (x >= 0L) then false::(decomposition_int64 (div x 2L))
+  else false::(decomposition_int64 (add (pow2 63L) (div x 2L)))
 ;;
+
+let dec_64_int64 x =
+  let rec decompos x n =
+    match n with
+      0 -> []
+    | _ ->
+        if (modulo_int64 x 2L) = 1L
+        then
+          if (x >= 0L) then true::(decompos (div x 2L) (n-1))
+          else true::(decompos (sub (add (pow2 63L) (div x 2L)) 1L) (n-1))
+        else if (x >= 0L) then false::(decompos (div x 2L) (n-1))
+        else false::(decompos (add (pow2 63L) (div x 2L)) (n-1))
+  in
+  decompos x 64
+;;
+
 
 let rec decomposition b =
   match b with
   | [] -> []
-  | x::b2 -> decomposition_int64 x @ decomposition b2
+  | [x] -> decomposition_int64 x
+  | x::y::b2 -> dec_64_int64 x @ decomposition (y::b2)
 ;;
 
-
-(* Fonctions auxiliaires *)
-
-let rec pow2 n =
-  match n with
-    0L -> 1L
-  | _ -> mul 2L (pow2 (sub n 1L))
-;;
-
-let rec list_of_pow n =
-  if n < 64L then [pow2 n]
-  else 0L::(list_of_pow (sub n 64L))
-;;
 
 
 (* Question 1.3 *)
@@ -148,10 +174,10 @@ let shift_n_left x n =
 
 (* genalea génère un entier encodé sur n bits, autrement dit un entier entre 0 et 2^n exclu *)
 let rec genalea n =
-  if n <= 64L then [add (Random.int64 (pow2 (div n 2L))) (shift_n_left (Random.int64 (pow2 (sub n (div n 2L)))) (div n 2L))]
+  if n <= 64L then let v = add (Random.int64 (pow2 (div n 2L))) (shift_n_left (Random.int64 (pow2 (sub n (div n 2L)))) (div n 2L))
+    in if v = 0L then [] else [v]
   else (genalea 64L) @ (genalea (sub n 64L))
 ;;
-
 
 (* Question 2.7 : voir le type bdd *)
 
@@ -208,64 +234,154 @@ let rec liste_feuilles a =
 
 (* Question 3.11 *)
 
-(* TODO: supprimer *)
-let rec parcours_suffixe a =
-  match a with
-  | Leaf(e) -> if e = true then print_string "true " else print_string "false "
-  | Node(a1, e, a2) ->
-      parcours_suffixe !a1;
-      parcours_suffixe !a2;
-      printf "%d " e
-;;
-
+(* Renvoie la deuxième composante du couple de la liste qui respecte cette condition :
+   (1ère_comp_recherchée operator 1ère_comp_de_la_liste) est vraie *)
 (* bigint_list -> listeDejaVus -> option ref bdd *)
-let rec get_seconde_composante b ldv =
-  match ldv with
+let rec get_second_componant target_first_comp operator pairs_list =
+  match pairs_list with
   | [] -> None
-  | (lb, lpointeur)::ldv2 ->
-      if lb = b
-      then Some lpointeur
-      else get_seconde_composante b ldv2
+  | (first_comp, second_comp)::pairs_list2 ->
+      if operator target_first_comp first_comp
+      then Some second_comp
+      else get_second_componant target_first_comp operator pairs_list2
 ;;
 
-(*
-(* TODO : supprimer OU à réécrire avec des ref plutot que des noeuds *)
-(* bigint_list
-   -> bdd
-   -> (bigint_list * ref bdd) listDejaVus
-   -> (bigint_list * ref bdd) listDejaVus *)
-let rec overwrite_seconde_composante b new_pointeur ldv =
-  match ldv with
-  | [] -> raise (Invalid_argument "overwrite_seconde_composante: bigint not found")
-  | (lb, lpointeur)::ldv2 ->
-      if lb = b
-      then (lb, new_pointeur)::ldv2
-      else (lb, lpointeur)::(overwrite_seconde_composante b new_pointeur ldv2)
+(* Si la val du sous-arbre est dans ldv,
+  renvoie une ref vers sa seconde composante, et ldv inchangée.
+  Sinon renvoie une ref vers le noeud, et ldv à laquelle (val, ref noeud) a été ajouté. *)
+let treatNodeCompression current_node ldv =
+  let n = composition (liste_feuilles current_node) in
+  let seconde_comp = (get_second_componant n (=) ldv) in
+  match seconde_comp with
+  | None ->
+      (* Printf.printf "Nouveau bigint \n" ;  *)
+      let pointeur = ref current_node in
+      (pointeur, (n, pointeur)::ldv)
+  | Some pointeur ->
+      (* Printf.printf "Old bigint \n" ;  *)
+      (pointeur, ldv)
 ;;
+
+(* Renvoie le nouvel arbre compressé et
+  la liste des couples (bigint, bdd) des noeuds visités. *)
+(* bdd -> listDejaVus -> (bdd, listDejaVus) *)
+let rec compressionParListeAux current_node ldv =
+  let (new_node, ldv) =
+    match current_node with
+    | Leaf(e) -> (current_node, ldv)
+    | Node(g, e, d) ->
+        let (g1, ldv) =
+          match !g with
+          | Leaf(_) -> (g, ldv)
+          | Node(_, _, _) -> compressionParListeAux (!g) ldv
+        in
+        let (d1, ldv) =
+          match !d with
+          | Leaf(_) -> (d, ldv)
+          | Node(_, _, _) -> compressionParListeAux (!d) ldv
+        in
+        let (g1_treated, ldv) = treatNodeCompression (!g1) ldv in
+        let (d1_treated, ldv) = treatNodeCompression (!d1) ldv in
+        (* Printf.printf "fils égaux == ? %b\n" (g1_treated == d1_treated); *)
+        (* Printf.printf "ref fils égales = ? %b\n" (ref g1_treated = ref d1_treated); *)
+        let new_node = Node(g1_treated, e, d1_treated) in
+        (new_node, ldv)
+  in
+  (ref new_node, ldv)
+;;
+
+
+let compressionParListe arbre =
+  let (new_arbre, ldv) = compressionParListeAux arbre [] in new_arbre;;
+
+
+(* bdd current_node
+  -> string father_name
+  -> bool is_gauche
+  -> list (ref bdd * string) nodes_names_visited
+  -> int id
+  -> string
+Fonctionnement :
+  Parcours préfixe de l'arbre.
+  A chaque noeud visité, s'il n'est pas déjà dans la liste des noeuds visités,
+  alors on lui crée un nom unique qu'on concatène au string renvoyé. Dans tous les cas,
+  on concatène ensuite le string correspondant au lien entre son père et lui.
+  On appelle récursivement sur son fils gauche puis son fils droit.
 *)
+let rec toStringDotFormatAux
+    current_node
+    is_gauche
+    father_name
+    nodes_names_visited
+    id =
 
-(* TODO : à réécrire avec des ref plutot que des noeuds *)
-(* bdd -> listDejaVus -> bdd *)
-let rec compressionParListeAux a ldv =
-  match a with
-  | Leaf(e) -> (Leaf(e), ldv)
-  | Node(a1, e, a2) ->
-      let (a1bis, ldv) = compressionParListeAux (!a1) ldv in
-      let (a2bis, ldv) = compressionParListeAux (!a2) ldv in
+  let getNameStrListId e_str current_node is_gauche father_name nodes_names_visited id =
+    let current_string = "" in
+    let line_style = (if is_gauche then "[style=dashed]" else "") in
+    let name_option = get_second_componant current_node (==) nodes_names_visited in
+    let (name, nodes_names_visited, current_string, id, already_visited) =
+      match name_option with
+      | None ->
+          let n = Printf.sprintf "node_%d" id in
+          let l = (current_node, n)::nodes_names_visited in
+          let s0 = (
+            if e_str = "true"
+            then Printf.sprintf "\t%s [label=%s,  style=\"filled\", fillcolor=\"green\"]\n" n e_str
+            else if e_str = "false"
+            then Printf.sprintf "\t%s [label=%s,  style=\"filled\", fillcolor=\"red\"]\n" n e_str
+            else Printf.sprintf "\t%s [label=%s]\n" n e_str
+            )
+          in
+          let s = current_string ^ s0 in
+          let i = id + 1 in
+          let v = false in
+          (n, l, s, i, v)
+      | Some name_option ->
+          (name_option, nodes_names_visited, current_string, id, true)
+    in
+    let current_string = (
+      if father_name = "root" then current_string else
+      current_string ^ Printf.sprintf "\t%s -> %s %s\n" father_name name line_style
+    ) in
+    (name, current_string, nodes_names_visited, id, already_visited)
+  in
 
-      let n = composition (liste_feuilles (Node(a1, e, a2))) in
-      let seconde_comp = (get_seconde_composante n ldv) in
-      let new_node = Node(ref a1bis, e, ref a2bis) in
-      let ldv2 =
-        match seconde_comp with
-        | None -> (n, new_node)::ldv
-        | Some pointeur -> ldv
-      in
-      (new_node, ldv2)
+  match current_node with
+  | Leaf(e) ->
+      let (name, current_string, nodes_names_visited, id, already_visited) =
+        getNameStrListId (Bool.to_string e) current_node is_gauche father_name nodes_names_visited id
+      in (current_string, nodes_names_visited, id)
+
+  | Node(gauche, e, droite) ->
+      let (name, current_string, nodes_names_visited, id, already_visited) =
+        getNameStrListId (string_of_int e) current_node is_gauche father_name nodes_names_visited id in
+
+      let (gauche_string, nodes_names_visited, id) = (
+        if not already_visited
+        then toStringDotFormatAux (!gauche) true name nodes_names_visited id
+        else ("", nodes_names_visited, id)) in
+
+      let (droite_string, nodes_names_visited, id) = (
+        if not already_visited
+        then toStringDotFormatAux (!droite) false name nodes_names_visited id
+        else ("", nodes_names_visited, id)) in
+
+      let final_string = current_string ^ gauche_string ^ droite_string in
+      (final_string, nodes_names_visited, id)
 ;;
 
 
-(* TESTS *)
+(* Renvoie le string correspondant à la description de l'arbre au format dot *)
+let toStringDotFormat current_node =
+  let (node_str, _, _) = toStringDotFormatAux current_node false "root" [] 1 in
+  "digraph Q {\n" ^ node_str ^ "}\n"
+;;
+
+
+
+
+
+(* TESTS PARTIES 1 ET 2 *)
 (*
 let b = [23L; 6L];;
 let b = insert 4L b;;
@@ -293,17 +409,43 @@ composition [false; true; true; false; false; true];;
 *)
 
 
+(* TESTS PARTIE 3 *)
 
-let a = cons_arbre [true; true; true; false];;
-print_arbre a;;
-let la = liste_feuilles a;;
-List.iter (printf "%b ") la;;
-print_string "\n";;
-parcours_suffixe a;;
-print_string "\n";;
-print_string "\n";;
+let n50 = Leaf(false);;
+let n51 = Leaf(true);;
+let n41 = Node(ref n50, 4, ref n51);;
+let n42 = Node(ref n51, 4, ref n51);;
+let n31 = Node(ref n42, 3, ref n41);;
+let n32 = Node(ref n41, 3, ref n51);;
+let n33 = Node(ref n51, 3, ref n51);;
+let n21 = Node(ref n31, 2, ref n41);;
+let n22 = Node(ref n33, 2, ref n32);;
+let n1 = Node(ref n21, 1, ref n22);;
 
+(* let n3 = n2;; *)
+(* let n4 = n2;; *)
+(* Printf.printf "fils égaux ? %b\n" (n3 == n4);; *)
+(* Printf.printf "ref fils égales ? %b\n" (ref n3 = ref n4);; *)
+(* let n1 = Node(ref n3, 1, ref n4);; *)
+print_string (toStringDotFormat n1);;
 
-let (a2, ldv2) = compressionParListeAux a [];;
-print_arbre a2;
-print_string "\n";;
+let print_ldv ldv =
+  print_string "\nldv3 = ";
+  List.iter (fun (a, b) ->
+    print_string "(";
+    print_bigint a;
+    print_string "";
+    let () = match (!b) with
+      | Leaf(e) -> print_string (string_of_bool e)
+      | Node(a1, e, a2) -> print_int e in
+    print_string "), " )
+  ldv
+;;
+
+(* let a3 = cons_arbre [true; true; true; false];; *)
+let a3 = cons_arbre [true; true; false; true; false; true; false; false; true; false; true; false; false; true; true; false];;
+print_string (toStringDotFormat a3);;
+let (a3c, ldv3) = compressionParListeAux a3 [];;
+print_ldv ldv3;;
+print_string "\n\n";;
+print_string (toStringDotFormat !a3c);;
