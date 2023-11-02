@@ -7,7 +7,7 @@ type bigint = int64 list;;
 (* Question 2.7 : Binary Decision Diagram *)
 type bdd =
   | Leaf of bool
-  | Node of (bdd ref) * int * (bdd ref)
+  | Node of bdd * int * bdd
 ;;
 
 (* Question 3.10 : liste de couples (bigint * pointeur vers noeud d'un bdd) *)
@@ -194,11 +194,11 @@ let print_arbre a =
     | Leaf(false) -> print_string "Leaf false"
     | Node(a1, b, a2) ->
         print_string "Node (";
-        print_arbre_aux !a1;
+        print_arbre_aux a1;
         print_string ", ";
         print_int b;
         print_string ", ";
-        print_arbre_aux !a2;
+        print_arbre_aux a2;
         print_string ")"
   in
   print_arbre_aux a;
@@ -222,7 +222,7 @@ let cons_arbre vertable =
       let mid_index = (start_index + end_index) / 2 in
       let a1 = cons_arbre_aux vertable start_index mid_index (current_depth+1) in
       let a2 = cons_arbre_aux vertable mid_index end_index (current_depth+1) in
-      Node(ref a1, current_depth, ref a2)
+      Node(a1, current_depth, a2)
   in
 
   cons_arbre_aux vertable 0 (List.length vertable) 1
@@ -234,7 +234,7 @@ let cons_arbre vertable =
 let rec liste_feuilles a =
   match a with
   | Leaf(e) -> [e]
-  | Node(a1, e, a2) -> liste_feuilles (!a1) @ liste_feuilles (!a2)
+  | Node(a1, e, a2) -> liste_feuilles a1 @ liste_feuilles a2
 ;;
 
 
@@ -274,22 +274,22 @@ let rec compressionParListeAux current_node ldv =
     | Node(g, e, d) ->
     
         (* Récupérer liste de feuille avant modification *)
-        let g_feuilles_composees = composition (liste_feuilles !g) in
-        let d_feuilles_composees = composition (liste_feuilles !d) in
+        let g_feuilles_composees = composition (liste_feuilles g) in
+        let d_feuilles_composees = composition (liste_feuilles d) in
         
         (* Faire de la récurrence en suivant le parcours suffixe *)
-        let (g1, ldv) = compressionParListeAux (!g) ldv in
-        let (d1, ldv) = compressionParListeAux (!d) ldv in
+        let (g1, ldv) = compressionParListeAux g ldv in
+        let (d1, ldv) = compressionParListeAux d ldv in
         
         (* Récupérer le pointeur de noeud de meme val ou ajout dans la liste des noeuds déjà visités *)
-        let (g1, ldv) = treatNodeCompression (!g1) g_feuilles_composees ldv in
-        let (d1, ldv) = treatNodeCompression (!d1) d_feuilles_composees ldv in
+        let (g1ref, ldv) = treatNodeCompression g1 g_feuilles_composees ldv in
+        let (d1ref, ldv) = treatNodeCompression d1 d_feuilles_composees ldv in
         
         (* Renvoyer le nouveau noeud *)
-        let new_node = Node(g1, e, d1) in
+        let new_node = Node(!g1ref, e, !d1ref) in
         (new_node, ldv)
   in
-  (ref new_node, ldv)
+  (new_node, ldv)
 ;;
 
 
@@ -365,12 +365,12 @@ let rec toStringDotFormatAux
 
       let (gauche_string, nodes_names_visited, id) = (
         if not already_visited
-        then toStringDotFormatAux (!gauche) true name nodes_names_visited id
+        then toStringDotFormatAux gauche true name nodes_names_visited id
         else ("", nodes_names_visited, id)) in
 
       let (droite_string, nodes_names_visited, id) = (
         if not already_visited
-        then toStringDotFormatAux (!droite) false name nodes_names_visited id
+        then toStringDotFormatAux droite false name nodes_names_visited id
         else ("", nodes_names_visited, id)) in
 
       let final_string = current_string ^ gauche_string ^ droite_string in
@@ -427,14 +427,14 @@ composition [false; true; true; false; false; true];;
 
 let n50 = Leaf(false);;
 let n51 = Leaf(true);;
-let n41 = Node(ref n50, 4, ref n51);;
-let n42 = Node(ref n51, 4, ref n51);;
-let n31 = Node(ref n42, 3, ref n41);;
-let n32 = Node(ref n41, 3, ref n51);;
-let n33 = Node(ref n51, 3, ref n51);;
-let n21 = Node(ref n31, 2, ref n41);;
-let n22 = Node(ref n33, 2, ref n32);;
-let n1 = Node(ref n21, 1, ref n22);;
+let n41 = Node(n50, 4, n51);;
+let n42 = Node(n51, 4, n51);;
+let n31 = Node(n42, 3, n41);;
+let n32 = Node(n41, 3, n51);;
+let n33 = Node(n51, 3, n51);;
+let n21 = Node(n31, 2, n41);;
+let n22 = Node(n33, 2, n32);;
+let n1 = Node(n21, 1, n22);;
 
 (* let n3 = n2;; *)
 (* let n4 = n2;; *)
@@ -463,8 +463,8 @@ let a3_str = toStringDotFormat a3;;
 let (a3c, ldv3) = compressionParListeAux a3 [];;
 (* print_ldv ldv3;; *)
 (* print_string "\n\n";; *)
-let a3c_str = toStringDotFormat (!a3c);;
-(* print_string a3c_str;; *)
+let a3c_str = toStringDotFormat a3c;;
+print_string a3c_str;;
 
 exportDot "BDD_25899.dot" a3_str;;
 exportDot "BDD_25899_compressed.dot" a3c_str;;
