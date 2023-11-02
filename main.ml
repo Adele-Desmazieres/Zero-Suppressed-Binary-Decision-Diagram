@@ -235,7 +235,7 @@ let rec liste_feuilles a =
 (* Question 3.11 *)
 
 (* Renvoie la deuxième composante du couple de la liste qui respecte cette condition :
-   (1ère_comp_recherchée operator 1ère_comp_de_la_liste) est vraie *)
+    "1ère_comp_recherchée operator 1ère_comp_de_la_liste" est vraie *)
 (* bigint_list -> listeDejaVus -> option ref bdd *)
 let rec get_second_componant target_first_comp operator pairs_list =
   match pairs_list with
@@ -246,53 +246,52 @@ let rec get_second_componant target_first_comp operator pairs_list =
       else get_second_componant target_first_comp operator pairs_list2
 ;;
 
-(* Si la val du sous-arbre est dans ldv,
-  renvoie une ref vers sa seconde composante, et ldv inchangée.
-  Sinon renvoie une ref vers le noeud, et ldv à laquelle (val, ref noeud) a été ajouté. *)
-let treatNodeCompression current_node ldv =
-  let n = composition (liste_feuilles current_node) in
+(* Si la val "n" du sous-arbre "current_node" est dans ldv,
+  renvoie une ref vers la seconde composante du couple, et ldv inchangée.
+  Sinon renvoie une ref vers le noeud, et ldv à laquelle (n, ref current_node) a été ajouté. *)
+let treatNodeCompression current_node n ldv =
   let seconde_comp = (get_second_componant n (=) ldv) in
   match seconde_comp with
-  | None ->
-      (* Printf.printf "Nouveau bigint \n" ;  *)
-      let pointeur = ref current_node in
-      (pointeur, (n, pointeur)::ldv)
-  | Some pointeur ->
-      (* Printf.printf "Old bigint \n" ;  *)
-      (pointeur, ldv)
+  | None -> (ref current_node, (n, ref current_node)::ldv)
+  | Some pointeur -> (pointeur, ldv)
 ;;
 
 (* Renvoie le nouvel arbre compressé et
-  la liste des couples (bigint, bdd) des noeuds visités. *)
+  la liste des couples (bigint, bdd) des noeuds visités. 
+  Omission de la règle Z, car les noeuds ayant des false dans la 2nde moitié de leur liste
+  seront toujours merged à d'autres noeuds par la règle M. *)
 (* bdd -> listDejaVus -> (bdd, listDejaVus) *)
 let rec compressionParListeAux current_node ldv =
   let (new_node, ldv) =
     match current_node with
     | Leaf(e) -> (current_node, ldv)
     | Node(g, e, d) ->
-        let (g1, ldv) =
-          match !g with
-          | Leaf(_) -> (g, ldv)
-          | Node(_, _, _) -> compressionParListeAux (!g) ldv
-        in
-        let (d1, ldv) =
-          match !d with
-          | Leaf(_) -> (d, ldv)
-          | Node(_, _, _) -> compressionParListeAux (!d) ldv
-        in
-        let (g1_treated, ldv) = treatNodeCompression (!g1) ldv in
-        let (d1_treated, ldv) = treatNodeCompression (!d1) ldv in
-        (* Printf.printf "fils égaux == ? %b\n" (g1_treated == d1_treated); *)
-        (* Printf.printf "ref fils égales = ? %b\n" (ref g1_treated = ref d1_treated); *)
-        let new_node = Node(g1_treated, e, d1_treated) in
+    
+        (* Récupérer liste de feuille avant modification *)
+        let g_feuilles_composees = composition (liste_feuilles !g) in
+        let d_feuilles_composees = composition (liste_feuilles !d) in
+        
+        (* Faire de la récurrence en suivant le parcours suffixe *)
+        let (g1, ldv) = compressionParListeAux (!g) ldv in
+        let (d1, ldv) = compressionParListeAux (!d) ldv in
+        
+        (* Récupérer le pointeur de noeud de meme val ou ajout dans la liste des noeuds déjà visités *)
+        let (g1, ldv) = treatNodeCompression (!g1) g_feuilles_composees ldv in
+        let (d1, ldv) = treatNodeCompression (!d1) d_feuilles_composees ldv in
+        
+        (* Renvoyer le nouveau noeud *)
+        let new_node = Node(g1, e, d1) in
         (new_node, ldv)
   in
   (ref new_node, ldv)
 ;;
 
 
+(* bdd -> bdd *)
 let compressionParListe arbre =
-  let (new_arbre, ldv) = compressionParListeAux arbre [] in new_arbre;;
+  let (new_arbre, ldv) = compressionParListeAux arbre [] in 
+  new_arbre
+;;
 
 
 (* bdd current_node
@@ -427,7 +426,7 @@ let n1 = Node(ref n21, 1, ref n22);;
 (* Printf.printf "fils égaux ? %b\n" (n3 == n4);; *)
 (* Printf.printf "ref fils égales ? %b\n" (ref n3 = ref n4);; *)
 (* let n1 = Node(ref n3, 1, ref n4);; *)
-print_string (toStringDotFormat n1);;
+(* print_string (toStringDotFormat n1);; *)
 
 let print_ldv ldv =
   print_string "\nldv3 = ";
