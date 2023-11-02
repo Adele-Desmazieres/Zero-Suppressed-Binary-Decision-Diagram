@@ -11,8 +11,14 @@ type bdd =
 ;;
 
 (* Question 3.10 : liste de couples (bigint * pointeur vers noeud d'un bdd) *)
-(* TODO : remplacer bdd par une ref vers un noeud *)
+(* TODO : remplacer bdd par une ref vers un noeud ??? *)
 type listeDejaVus = (bigint * bdd) list;;
+
+(* Question 4.15 : Arbre de noeuds deja vus *)
+type arbreDejaVus = 
+  | Empty
+  | NodeRef of arbreDejaVus * (bdd option) * arbreDejaVus
+
 
 (* Fonctions auxiliaires *)
 
@@ -294,6 +300,8 @@ let compressionParListe arbre =
 ;;
 
 
+(* Question 3.12 *)
+
 (* bdd current_node
   -> string father_name
   -> bool is_gauche
@@ -451,12 +459,16 @@ let print_ldv ldv =
 (* let a3 = cons_arbre [true; true; true; false];; *)
 let a3 = cons_arbre [true; true; false; true; false; true; false; false; true; false; true; false; false; true; true; false];;
 let a3_str = toStringDotFormat a3;;
-print_string a3_str;;
+(* print_string a3_str;; *)
 let (a3c, ldv3) = compressionParListeAux a3 [];;
-print_ldv ldv3;;
-print_string "\n\n";;
+(* print_ldv ldv3;; *)
+(* print_string "\n\n";; *)
 let a3c_str = toStringDotFormat (!a3c);;
-print_string a3c_str;;
+(* print_string a3c_str;; *)
 
-exportDot "ZDD_25899.dot" a3_str;;
-exportDot "ZDD_25899_compressed.dot" a3c_str;;
+exportDot "BDD_25899.dot" a3_str;;
+exportDot "BDD_25899_compressed.dot" a3c_str;;
+
+
+
+print_string "Done.\n"
