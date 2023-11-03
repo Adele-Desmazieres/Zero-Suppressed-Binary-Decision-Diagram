@@ -19,7 +19,8 @@ type listeDejaVus = (bigint * bdd) list;;
 (* Question 4.15 : Arbre de noeuds deja vus *)
 type arbreDejaVus = 
   | Empty
-  | NodeRef of arbreDejaVus * (bdd option) * arbreDejaVus
+  | NodeADV of {gauche : arbreDejaVus; mutable e : (bdd option); droite : arbreDejaVus }
+
 
 
 (* Fonctions auxiliaires *)
@@ -273,7 +274,7 @@ let rec liste_feuilles a =
 
 (* Renvoie la deuxième composante du couple de la liste qui respecte cette condition :
     "1ère_comp_recherchée operator 1ère_comp_de_la_liste" est vraie *)
-(* bigint_list -> listeDejaVus -> option ref bdd *)
+(* bigint -> listeDejaVus -> option ref bdd *)
 let rec get_second_componant target_first_comp operator pairs_list =
   match pairs_list with
   | [] -> None
@@ -284,12 +285,12 @@ let rec get_second_componant target_first_comp operator pairs_list =
 ;;
 
 (* Si la val "n" du sous-arbre "current_node" est dans ldv,
-  renvoie une ref vers la seconde composante du couple, et ldv inchangée.
-  Sinon renvoie une ref vers le noeud, et ldv à laquelle (n, ref current_node) a été ajouté. *)
+  renvoie la seconde composante du couple, et ldv inchangée.
+  Sinon renvoie le noeud, et ldv à laquelle (n, current_node) a été ajouté. *)
 let treatNodeCompression current_node n ldv =
   let seconde_comp = (get_second_componant n (=) ldv) in
   match seconde_comp with
-  | None -> (ref current_node, (n, ref current_node)::ldv)
+  | None -> (current_node, (n, current_node)::ldv)
   | Some pointeur -> (pointeur, ldv)
 ;;
 
@@ -299,28 +300,25 @@ let treatNodeCompression current_node n ldv =
   seront toujours merged à d'autres noeuds par la règle M. *)
 (* bdd -> listDejaVus -> (bdd, listDejaVus) *)
 let rec compressionParListeAux current_node ldv =
-  let (new_node, ldv) =
-    match current_node with
-    | Leaf(e) -> (current_node, ldv)
-    | Node(g, e, d) ->
-    
-        (* Récupérer liste de feuille avant modification *)
-        let g_feuilles_composees = composition (liste_feuilles g) in
-        let d_feuilles_composees = composition (liste_feuilles d) in
-        
-        (* Faire de la récurrence en suivant le parcours suffixe *)
-        let (g1, ldv) = compressionParListeAux g ldv in
-        let (d1, ldv) = compressionParListeAux d ldv in
-        
-        (* Récupérer le pointeur de noeud de meme val ou ajout dans la liste des noeuds déjà visités *)
-        let (g1ref, ldv) = treatNodeCompression g1 g_feuilles_composees ldv in
-        let (d1ref, ldv) = treatNodeCompression d1 d_feuilles_composees ldv in
-        
-        (* Renvoyer le nouveau noeud *)
-        let new_node = Node(!g1ref, e, !d1ref) in
-        (new_node, ldv)
-  in
-  (new_node, ldv)
+  match current_node with
+  | Leaf(e) -> (current_node, ldv)
+  | Node(g, e, d) ->
+  
+      (* Récupérer liste de feuille avant modification *)
+      let g_feuilles_composees = composition (liste_feuilles g) in
+      let d_feuilles_composees = composition (liste_feuilles d) in
+      
+      (* Faire de la récurrence en suivant le parcours suffixe *)
+      let (g1, ldv) = compressionParListeAux g ldv in
+      let (d1, ldv) = compressionParListeAux d ldv in
+      
+      (* Récupérer le pointeur de noeud de meme val ou ajout dans la liste des noeuds déjà visités *)
+      let (g1, ldv) = treatNodeCompression g1 g_feuilles_composees ldv in
+      let (d1, ldv) = treatNodeCompression d1 d_feuilles_composees ldv in
+      
+      (* Renvoyer le nouveau noeud *)
+      let new_node = Node(g1, e, d1) in
+      (new_node, ldv)
 ;;
 
 
@@ -415,7 +413,6 @@ let toStringDotFormat current_node =
   "digraph Q {\n" ^ node_str ^ "}\n"
 ;;
 
-
 (* TODO : modifier cette fonction pour décharger le contenu ligne par ligne ou dans un buffer *)
 let exportDot filename content =
   let oc = open_out filename in (* create or truncate file, return channel *)
@@ -423,22 +420,126 @@ let exportDot filename content =
   close_out oc (* close channel *)
 ;;
 
-let bigintToDot filename b =
+
+(* Question 4.16 et 4.17 *)
+
+(* Renvoie l'élément de l'arbreDejaVus placé dans le noeud
+   correspondant à la table vertable. 
+   S'il n'existe pas, alors met un pointeur vers current_node à cette place
+   dans l'arbreDejaVus, et renvoie current_node. 
+   Modifie adv directement, sans copie. 
+ *)
+(* bdd -> bool list -> arbreDejaVus -> bdd *)
+let rec treatNodeArbreCompression current_node vertable adv =
+  match adv with
+  | Empty -> raise (Failure "treatNodeArbreCompression : adv pas assez profond")
+  | NodeADV ({gauche=g; e=node_option; droite=d} as n) ->
+      match vertable with
+      | binary_bit::vertable2 -> 
+          if binary_bit
+          then treatNodeArbreCompression current_node vertable2 d 
+          else treatNodeArbreCompression current_node vertable2 g
+      | [] -> match node_option with
+          | None -> 
+              n.e <- Some current_node; 
+              current_node
+          | Some new_node -> new_node
+;;
+
+
+(* Renvoie l'élément recherché et adv éventuellement modifié *)
+let rec insertOrGetADV adv nodeBDD vertable =
+  match vertable with
+  | [] -> (
+      match adv with
+      | Empty -> (nodeBDD, NodeADV {gauche=Empty; e=Some nodeBDD; droite=Empty})
+      | NodeADV {gauche=g1; e=e1; droite=d1} as n -> (
+          match e1 with 
+          | None -> (nodeBDD, NodeADV {gauche=g1; e=Some nodeBDD; droite=d1})
+          | Some new_node -> (new_node, n)
+        ))
+  | b::v2 -> 
+      match adv with
+      | Empty -> 
+          if b 
+          then let (new_node, new_d1) = insertOrGetADV Empty nodeBDD v2 in
+            (new_node, NodeADV {gauche=Empty; e=None; droite=new_d1})
+          else let (new_node, new_g1) = insertOrGetADV Empty nodeBDD v2 in
+            (new_node, NodeADV {gauche=new_g1; e=None; droite=Empty})
+      | NodeADV {gauche=g1; e=e1; droite=d1} -> 
+          if b 
+          then let (new_node, new_d1) = insertOrGetADV d1 nodeBDD v2 in
+            (new_node, NodeADV {gauche=g1; e=e1; droite=new_d1})
+          else let (new_node, new_g1) = insertOrGetADV g1 nodeBDD v2 in
+            (new_node, NodeADV {gauche=new_g1; e=e1; droite=d1})
+;;
+
+(* Renvoie un arbreDejaVu de recherche dont tous les noeuds contiennent None
+   et qui a une profondeur égale au nombre de feuilles dans l'arbreBDD. *)
+(* TODO : a effacer ? *)
+let initArbreDejaVus_TMP arbreBDD =
+  let rec initAux arbreBDD adv = 
+    match arbreBDD with
+    | Leaf(e) as n -> insertOrGetADV adv n [e]
+    | Node(g, e, d) as n -> 
+        let (_, adv) = insertOrGetADV adv n (liste_feuilles n) in
+        let (_, adv) = initAux g adv in 
+        initAux d adv
+    in
+  let (_, adv) = initAux arbreBDD Empty in adv
+;;
+
+let initArbreDejaVus = Empty;;
+
+(* Renvoie le nouvel arbre compressé et
+  l'arbreDejaVus des noeuds visités. 
+  Omission de la règle Z, car les noeuds ayant des false dans la 2nde moitié de leur liste
+  seront toujours merged à d'autres noeuds par la règle M. *)
+(* bdd -> arbreDejaVus -> (bdd, arbreDejaVus) *)
+let rec compressionParArbreAux current_node adv =
+  match current_node with
+  | Leaf(e) -> (current_node, adv)
+  | Node(g, e, d) ->
+  
+      (* Récupérer liste de feuille avant modification *)
+      let g_feuilles = liste_feuilles g in
+      let d_feuilles = liste_feuilles d in
+      
+      (* Faire de la récurrence en suivant le parcours suffixe *)
+      let (g1, adv) = compressionParArbreAux g adv in
+      let (d1, adv) = compressionParArbreAux d adv in
+      
+      (* Récupérer le pointeur de noeud de meme val ou ajout dans la liste des noeuds déjà visités *)
+      let (g1, adv) = insertOrGetADV adv g1 g_feuilles in
+      let (d1, adv) = insertOrGetADV adv d1 d_feuilles in
+      
+      (* Renvoyer le nouveau noeud *)
+      let new_node = Node(g1, e, d1) in
+      (new_node, adv)
+;;
+
+
+(* bdd -> bdd *)
+let compressionParArbre arbre =
+  let (new_arbre, adv) = compressionParArbreAux arbre Empty in 
+  new_arbre
+;;
+
+
+let bigintToDot filename b isParListe =
   let vertable = decomposition b in
   let arbre = cons_arbre vertable in
-  let arbre_compressed = compressionParListe arbre in
+  let arbre_compressed = 
+    if isParListe
+    then compressionParListe arbre 
+    else compressionParArbre arbre
+  in
   (* let title = Printf.sprintf "bdd_%s" (bigint_to_string b) in *)
   let title = filename in
   exportDot (title^".dot") (toStringDotFormat arbre);
   exportDot (title^"_compressed.dot") (toStringDotFormat arbre_compressed);
   ()
 ;;
-
-
-(* Question 4.16 *)
-
-
-
 
 
 (* TESTS PARTIES 1 ET 2 *)
@@ -532,7 +633,7 @@ exportDot "BDD_25899_compressed_bis.dot" (toStringDotFormat a4c);;
 let b = [-4077520903251697734L; 3725098519587869504L];; (* = 68715939040191755864311453423018172346 *)
 print_bigint b;;
 printf "\n";;
-let () = bigintToDot "TEST_130bits" b;;
+let () = bigintToDot "TEST_130bits" b true;;
 
 let table = decomposition b;; (* decomposition correcte *)
 let () = List.iter (fun x -> if x then printf "true; " else printf "false; ") table;;
@@ -544,9 +645,16 @@ printf "\n\n";;
 *)
 
 let b2 = [0L; 1L];;
-let () = bigintToDot "bdd_0L_1L" b2;;
+let () = bigintToDot "bdd_0L_1L" b2 true;;
 
-let b3 = [9223372036854775808; 1L];;
-let () = bigintToDot "bdd_2pow63_1L" b3;;
+let b3 = [9223372036854775808L; 1L];;
+let () = bigintToDot "bdd_2pow63_1L" b3 true;;
+
+(* let () = bigintToDot "ARBRE_bdd_2pow63_1L" b3 false;; *)
+
+let a = [7L];;
+(*let atmp =  (cons_arbre (decomposition a));;*)
+let () = bigintToDot "ARBRE_7L" a false;;
+
 
 print_string "Done.\n";;
