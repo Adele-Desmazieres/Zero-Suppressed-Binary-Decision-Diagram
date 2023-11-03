@@ -1,5 +1,7 @@
 open Int64
 open Printf
+open Random
+let () = Random.self_init ();
 
 (* Question 1.1 : représentation d'un bigint en liste d'int64 *)
 type bigint = int64 list;;
@@ -60,6 +62,13 @@ let rec print_bigint b =
       print_string (to_string e);
       print_string ", ";
       print_bigint b2
+;;
+
+let rec bigint_to_string b =
+  match b with
+  | [] -> "EMPTY"
+  | [e] -> to_string e
+  | e::b2 -> to_string e ^ "-" ^ (bigint_to_string b2)
 ;;
 
 
@@ -209,7 +218,7 @@ let print_arbre a =
 (* Question 2.8 *)
 
 (*
-  Input: bool list of size of any power of 2.
+  Input: bool list of any size.
   Output: a decision binary tree that contains the elements
   of the list in its leaves, ordered from left to right.
 *)
@@ -224,8 +233,12 @@ let cons_arbre vertable =
       let a2 = cons_arbre_aux vertable mid_index end_index (current_depth+1) in
       Node(a1, current_depth, a2)
   in
-
-  cons_arbre_aux vertable 0 (List.length vertable) 1
+  let size = List.length vertable in
+  (* Pour obtenir la puissance de 2 supérieure ou égale à size la plus proche, 
+  on met au carré l'arrondi supérieur de la racine carré de size *)
+  let newsize = int_of_float (Float.pow (Float.ceil (Float.sqrt (Float.of_int (size)))) 2.) in 
+  let vertable_completed = completion vertable newsize in
+  cons_arbre_aux vertable_completed 0 newsize 1
 ;;
 
 
@@ -392,6 +405,21 @@ let exportDot filename content =
   close_out oc (* close channel *)
 ;;
 
+let bigintToDot filename b =
+  let vertable = decomposition b in
+  let arbre = cons_arbre vertable in
+  let arbre_compressed = compressionParListe arbre in
+  (* let title = Printf.sprintf "bdd_%s" (bigint_to_string b) in *)
+  let title = filename in
+  exportDot (title^".dot") (toStringDotFormat arbre);
+  exportDot (title^"_compressed.dot") (toStringDotFormat arbre_compressed);
+  ()
+;;
+
+
+(* Question 4.16 *)
+
+
 
 
 
@@ -456,13 +484,12 @@ let print_ldv ldv =
   ldv
 ;;
 
+(*
 (* let a3 = cons_arbre [true; true; true; false];; *)
 let a3 = cons_arbre [true; true; false; true; false; true; false; false; true; false; true; false; false; true; true; false];;
 let a3_str = toStringDotFormat a3;;
 (* print_string a3_str;; *)
-let (a3c, ldv3) = compressionParListeAux a3 [];;
-(* print_ldv ldv3;; *)
-(* print_string "\n\n";; *)
+let a3c = compressionParListe a3;;
 let a3c_str = toStringDotFormat a3c;;
 print_string a3c_str;;
 
@@ -471,4 +498,19 @@ exportDot "BDD_25899_compressed.dot" a3c_str;;
 
 
 
-print_string "Done.\n"
+let vertable = decomposition [25899L];;
+let () = List.iter (printf "%b ") vertable;;
+print_string "\n";;
+
+let a4 = cons_arbre vertable;;
+let a4c = compressionParListe a4;;
+exportDot "BDD_25899_bis.dot" (toStringDotFormat a4);;
+exportDot "BDD_25899_compressed_bis.dot" (toStringDotFormat a4c);;
+*)
+
+let b = genalea 130L;;
+print_bigint b;;
+let () = bigintToDot "130bits" b;;
+
+
+print_string "Done.\n";;
