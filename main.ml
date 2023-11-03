@@ -423,30 +423,6 @@ let exportDot filename content =
 
 (* Question 4.16 et 4.17 *)
 
-(* Renvoie l'élément de l'arbreDejaVus placé dans le noeud
-   correspondant à la table vertable. 
-   S'il n'existe pas, alors met un pointeur vers current_node à cette place
-   dans l'arbreDejaVus, et renvoie current_node. 
-   Modifie adv directement, sans copie. 
- *)
-(* bdd -> bool list -> arbreDejaVus -> bdd *)
-let rec treatNodeArbreCompression current_node vertable adv =
-  match adv with
-  | Empty -> raise (Failure "treatNodeArbreCompression : adv pas assez profond")
-  | NodeADV ({gauche=g; e=node_option; droite=d} as n) ->
-      match vertable with
-      | binary_bit::vertable2 -> 
-          if binary_bit
-          then treatNodeArbreCompression current_node vertable2 d 
-          else treatNodeArbreCompression current_node vertable2 g
-      | [] -> match node_option with
-          | None -> 
-              n.e <- Some current_node; 
-              current_node
-          | Some new_node -> new_node
-;;
-
-
 (* Renvoie l'élément recherché et adv éventuellement modifié *)
 let rec insertOrGetADV adv nodeBDD vertable =
   match vertable with
