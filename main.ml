@@ -474,27 +474,10 @@ let rec insertOrGetADV adv nodeBDD vertable =
             (new_node, NodeADV {gauche=new_g1; e=e1; droite=d1})
 ;;
 
-(* Renvoie un arbreDejaVu de recherche dont tous les noeuds contiennent None
-   et qui a une profondeur égale au nombre de feuilles dans l'arbreBDD. *)
-(* TODO : a effacer ? *)
-let initArbreDejaVus_TMP arbreBDD =
-  let rec initAux arbreBDD adv = 
-    match arbreBDD with
-    | Leaf(e) as n -> insertOrGetADV adv n [e]
-    | Node(g, e, d) as n -> 
-        let (_, adv) = insertOrGetADV adv n (liste_feuilles n) in
-        let (_, adv) = initAux g adv in 
-        initAux d adv
-    in
-  let (_, adv) = initAux arbreBDD Empty in adv
-;;
-
-let initArbreDejaVus = Empty;;
 
 (* Renvoie le nouvel arbre compressé et
   l'arbreDejaVus des noeuds visités. 
-  Omission de la règle Z, car les noeuds ayant des false dans la 2nde moitié de leur liste
-  seront toujours merged à d'autres noeuds par la règle M. *)
+  TODO : Ne pas omettre la règle Z. *)
 (* bdd -> arbreDejaVus -> (bdd, arbreDejaVus) *)
 let rec compressionParArbreAux current_node adv =
   match current_node with
@@ -652,9 +635,8 @@ let () = bigintToDot "bdd_2pow63_1L" b3 true;;
 
 (* let () = bigintToDot "ARBRE_bdd_2pow63_1L" b3 false;; *)
 
-let a = [7L];;
-(*let atmp =  (cons_arbre (decomposition a));;*)
-let () = bigintToDot "ARBRE_7L" a false;;
+let a = [14L];;
+let () = bigintToDot "ARBRE_14L" a false;;
 
 
 print_string "Done.\n";;
