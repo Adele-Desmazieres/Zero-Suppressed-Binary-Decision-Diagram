@@ -57,10 +57,11 @@ let rec insert x b =
 
 let rec print_bigint b =
   match b with
-  | [] -> print_string " "
+  | [] -> print_string "EMPTY"
+  | [e] -> Printf.printf "%s\n" (to_string e)
   | e::b2 ->
       print_string (to_string e);
-      print_string ", ";
+      print_string "; ";
       print_bigint b2
 ;;
 
@@ -217,6 +218,23 @@ let print_arbre a =
 
 (* Question 2.8 *)
 
+(* Source : https://github.com/janestreet/base/blob/master/src/int.ml *)
+(* Returns the smallest power of 2 that is greater than or equal to [x] *)
+let ceil_pow2 x =
+  if x <= 0 then raise (Invalid_argument "pow2");
+  let x = x - 1 in
+  let x = x lor (x lsr 1) in
+  let x = x lor (x lsr 2) in
+  let x = x lor (x lsr 4) in
+  let x = x lor (x lsr 8) in
+  let x = x lor (x lsr 16) in
+  (* The next line is superfluous on 32-bit architectures, but it's faster to do it
+     anyway than to branch *)
+  let x = x lor (x lsr 32) in
+  x + 1
+;;
+
+
 (*
   Input: bool list of any size.
   Output: a decision binary tree that contains the elements
@@ -234,10 +252,10 @@ let cons_arbre vertable =
       Node(a1, current_depth, a2)
   in
   let size = List.length vertable in
-  (* Pour obtenir la puissance de 2 supérieure ou égale à size la plus proche, 
-  on met au carré l'arrondi supérieur de la racine carré de size *)
-  let newsize = int_of_float (Float.pow (Float.ceil (Float.sqrt (Float.of_int (size)))) 2.) in 
+  (* On complète la liste avec des false pour qu'elle ai comme taille la prochaine puissance de 2 *)
+  let newsize = ceil_pow2 size in
   let vertable_completed = completion vertable newsize in
+  printf "size=%d, newsize=%d\n" size newsize;
   cons_arbre_aux vertable_completed 0 newsize 1
 ;;
 
@@ -496,8 +514,6 @@ print_string a3c_str;;
 exportDot "BDD_25899.dot" a3_str;;
 exportDot "BDD_25899_compressed.dot" a3c_str;;
 
-
-
 let vertable = decomposition [25899L];;
 let () = List.iter (printf "%b ") vertable;;
 print_string "\n";;
@@ -508,9 +524,29 @@ exportDot "BDD_25899_bis.dot" (toStringDotFormat a4);;
 exportDot "BDD_25899_compressed_bis.dot" (toStringDotFormat a4c);;
 *)
 
-let b = genalea 130L;;
+(* let b = genalea 130L;; *)
+(* b = [-x1L, x2L, -x3L]
+     = 1 * (2^64 - x1L) + 2^64 * x2L + 2^128 * (2^64 - x3L)
+*)
+(*
+let b = [-4077520903251697734L; 3725098519587869504L];; (* = 68715939040191755864311453423018172346 *)
 print_bigint b;;
-let () = bigintToDot "130bits" b;;
+printf "\n";;
+let () = bigintToDot "TEST_130bits" b;;
 
+let table = decomposition b;; (* decomposition correcte *)
+let () = List.iter (fun x -> if x then printf "true; " else printf "false; ") table;;
+printf "\n\n";;
+
+let b_bdd = cons_arbre table;;
+print_arbre b_bdd;;
+printf "\n\n";;
+*)
+
+let b2 = [0L; 1L];;
+let () = bigintToDot "bdd_0L_1L" b2;;
+
+let b3 = [9223372036854775808; 1L];;
+let () = bigintToDot "bdd_2pow63_1L" b3;;
 
 print_string "Done.\n";;
