@@ -631,44 +631,51 @@ let b = [7L];; (* = 7 *)
 print_bigint b;;
 let () = bigintToDot "7L_LDV" b true;;
 let () = bigintToDot "7L_ADV" b false;;
-printf "\n"
+printf "\n";;
 
 let b = [0L; 1L];; (* = 2^64 *)
 print_bigint b;;
 let () = bigintToDot "0L_1L_LDV" b true;;
 let () = bigintToDot "0L_1L_ADV" b false;;
-printf "\n"
+printf "\n";;
 
 let b = [9223372036854775808L; 1L];; (* = 2^63 + 2^64 *)
 print_bigint b;;
 let () = bigintToDot "2pow63_1L_LDV" b true;;
 let () = bigintToDot "2pow63_1L_ADV" b false;;
-printf "\n"
+printf "\n";;
 
 let b = [-4077520903251697734L; 3725098519587869504L];; (* = 68715939040191755864311453423018172346 *)
 print_bigint b;;
 let () = bigintToDot "126bits_LDV" b true;;
 let () = bigintToDot "126bits_ADV" b false;;
-printf "\n"
+printf "\n";;
 
 let b = genalea 1000L;;
 print_bigint b;;
 let () = bigintToDot "e3_bits_LDV" b true;;
 let () = bigintToDot "e3_bits_ADV" b false;;
-printf "\n"
+printf "\n";;
 
-let b = genalea 2000L;; 
+let b = genalea 3000L;; 
 print_bigint b;;
+
+let a = decomposition b;;
+(* let listef = liste_feuilles a;; *)
+printf "taille = %d\n" (List.length a);;
+let () = List.iter (printf "%b ") a;;
+printf "\n";;
+
 let () = bigintToDot "2e3_bits_LDV" b true;;
 let () = bigintToDot "2e3_bits_ADV" b false;;
-printf "\n"
+printf "\n";;
 
 (* Les fichiers dots des arbres compressés ne sont pas identiques... *)
-let b = genalea 3000L;;
+(* let b = genalea 3000L;;
 print_bigint b;;
 let () = bigintToDot "3e3_bits_LDV" b true;;
 let () = bigintToDot "3e3_bits_ADV" b false;;
-printf "\n"
+printf "\n";; *)
 
 (* Le test suivant met une 20aine de secondes à générer les dots. *)
 (* Les fichiers dots des arbres compressés ne sont pas identiques... *)
