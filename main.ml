@@ -657,7 +657,7 @@ let () = bigintToDot "e3_bits_LDV" b true;;
 let () = bigintToDot "e3_bits_ADV" b false;;
 printf "\n";;
 
-let b = genalea 3000L;; 
+let b = genalea 2000L;; 
 print_bigint b;;
 
 let a = decomposition b;;
@@ -671,11 +671,11 @@ let () = bigintToDot "2e3_bits_ADV" b false;;
 printf "\n";;
 
 (* Les fichiers dots des arbres compressés ne sont pas identiques... *)
-(* let b = genalea 3000L;;
+let b = genalea 3000L;;
 print_bigint b;;
 let () = bigintToDot "3e3_bits_LDV" b true;;
 let () = bigintToDot "3e3_bits_ADV" b false;;
-printf "\n";; *)
+printf "\n";;
 
 (* Le test suivant met une 20aine de secondes à générer les dots. *)
 (* Les fichiers dots des arbres compressés ne sont pas identiques... *)
