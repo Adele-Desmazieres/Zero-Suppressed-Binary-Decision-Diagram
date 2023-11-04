@@ -424,6 +424,7 @@ let exportDot filename content =
 (* Question 4.16 et 4.17 *)
 
 (* Renvoie l'élément recherché et adv éventuellement modifié *)
+(* TODO : remplacer les records de NodeADV en trucs normaux *)
 let rec insertOrGetADV adv nodeBDD vertable =
   match vertable with
   | [] -> (
@@ -433,7 +434,8 @@ let rec insertOrGetADV adv nodeBDD vertable =
           match e1 with 
           | None -> (nodeBDD, NodeADV {gauche=g1; e=Some nodeBDD; droite=d1})
           | Some new_node -> (new_node, n)
-        ))
+      )
+  )
   | b::v2 -> 
       match adv with
       | Empty -> 
@@ -464,17 +466,26 @@ let rec compressionParArbreAux current_node adv =
       let g_feuilles = liste_feuilles g in
       let d_feuilles = liste_feuilles d in
       
-      (* Faire de la récurrence en suivant le parcours suffixe *)
-      let (g1, adv) = compressionParArbreAux g adv in
-      let (d1, adv) = compressionParArbreAux d adv in
       
-      (* Récupérer le pointeur de noeud de meme val ou ajout dans la liste des noeuds déjà visités *)
-      let (g1, adv) = insertOrGetADV adv g1 g_feuilles in
-      let (d1, adv) = insertOrGetADV adv d1 d_feuilles in
-      
-      (* Renvoyer le nouveau noeud *)
-      let new_node = Node(g1, e, d1) in
-      (new_node, adv)
+      (* Règle Z *)
+      if composition d_feuilles = [0L] 
+      then 
+        let (g1, adv) = compressionParArbreAux g adv in
+        let (g1, adv) = insertOrGetADV adv g1 g_feuilles in
+        (g1, adv)
+        
+      else 
+        (* Faire de la récurrence gauche *)
+        let (g1, adv) = compressionParArbreAux g adv in
+        let (d1, adv) = compressionParArbreAux d adv in
+        
+        (* Récupérer le pointeur de noeud de meme val ou ajouter dans la liste des noeuds déjà visités *)
+        let (g1, adv) = insertOrGetADV adv g1 g_feuilles in
+        let (d1, adv) = insertOrGetADV adv d1 d_feuilles in
+        
+        (* Renvoyer le nouveau noeud *)
+        let new_node = Node(g1, e, d1) in
+        (new_node, adv)
 ;;
 
 
@@ -611,8 +622,8 @@ let () = bigintToDot "bdd_2pow63_1L" b3 true;;
 
 (* let () = bigintToDot "ARBRE_bdd_2pow63_1L" b3 false;; *)
 
-let a = [14L];;
-let () = bigintToDot "ARBRE_14L" a false;;
+let a = [7L];;
+let () = bigintToDot "ARBRE_7L" a false;;
 
 
 print_string "Done.\n";;
