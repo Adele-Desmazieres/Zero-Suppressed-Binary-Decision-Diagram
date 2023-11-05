@@ -17,7 +17,7 @@ type bdd =
 type listeDejaVus = (bigint * bdd) list;;
 
 (* Question 4.15 : Arbre de noeuds deja vus *)
-type arbreDejaVus = 
+type arbreDejaVus =
   | Empty
   | NodeADV of arbreDejaVus * bdd option * arbreDejaVus
 ;;
@@ -25,13 +25,14 @@ type arbreDejaVus =
 
 
 (* Fonctions auxiliaires *)
-
+(* Return 2 à la puissance n *)
 let rec pow2 n =
   match n with
     0L -> 1L
   | _ -> mul 2L (pow2 (sub n 1L))
 ;;
 
+(* Return le bigint qui correspond à 2 à la puissance n *)
 let rec list_of_pow n =
   if n < 64L then [pow2 n]
   else 0L::(list_of_pow (sub n 64L))
@@ -39,26 +40,30 @@ let rec list_of_pow n =
 
 (* Question 1.1 *)
 
+(* Return le premier élément d'une liste *)
 let peek b =
   match b with
   | [] -> raise (Invalid_argument "peek: empty b")
   | e::b2 -> e
 ;;
 
+(* Return le couple (premier élément d'une liste , le reste) *)
 let pop b =
   match b with
   | [] -> raise (Invalid_argument "pop: empty b")
   | e::b2 -> (e, b2)
 ;;
 
+(* Insérer l'élément x à la fin de la liste b *)
 let rec insert x b =
   match b with
   | [] -> [x]
   | e::b2 -> e::(insert x b2)
 ;;
 
+(* Afficher un bigint *)
 let print_bigint b =
-  let rec print_bigint_aux b = 
+  let rec print_bigint_aux b =
     match b with
     | [] -> print_string "EMPTY"
     | [e] -> printf "%s]\n" (to_string e)
@@ -66,7 +71,7 @@ let print_bigint b =
         print_string (to_string e);
         print_string "; ";
         print_bigint_aux b2
-  in 
+  in
   printf "[";
   print_bigint_aux b
 ;;
@@ -81,11 +86,14 @@ let rec bigint_to_string b =
 
 (* Question 1.2 *)
 
+(* Return le résultat de x mod y (négatifs ou positifs) *)
 let rec modulo_int64_basic x y =
   if ((x >= 0L && y > 0L) || (x < 0L && y < 0L)) then sub x (mul (div x y) y)
   else modulo_int64_basic (add (modulo_int64_basic x (sub 0L y)) y) y
 ;;
 
+(* Return le résultat de x mod y
+(En considérant que les vraies valeurs des entiers compris entre 2^63 et 2^64 - 1 sont représentées par les négatifs) *)
 let rec modulo_int64 x y =
   if (x >= 0L && y > 0L) then modulo_int64_basic x y
   else if (x < 0L && y > 0L)
@@ -95,6 +103,7 @@ let rec modulo_int64 x y =
   else sub x y
 ;;
 
+(* Return la liste des booléennes d'un int64 *)
 let rec decomposition_int64 x =
   if x = 0L then [false]
   else if x = 1L then [true]
@@ -106,6 +115,9 @@ let rec decomposition_int64 x =
   else false::(decomposition_int64 (add (pow2 63L) (div x 2L)))
 ;;
 
+(* Return la liste des booléennes d'un int64 complété à 64 éléments par des false à la fin *)
+(* Cette fonction aurait pu être écrite en utilisant la fonction précédente et la fonction complétion
+mais dans le sujet, la fonction complétion vient après cette question *)
 let dec_64_int64 x =
   let rec decompos x n =
     match n with
@@ -121,7 +133,7 @@ let dec_64_int64 x =
   decompos x 64
 ;;
 
-
+(* Return la liste des booléennes d'un bigint *)
 let rec decomposition b =
   match b with
   | [] -> []
@@ -133,6 +145,8 @@ let rec decomposition b =
 
 (* Question 1.3 *)
 
+(* Return une liste de taille n contenant les éléments de l et des false à la fin : (taille de l) < n *)
+(* Return une liste de taille n contenant les n premiers éléments de l : (taille de l) >= n *)
 let rec completion l n =
   match (l,n) with
     (_,0) -> []
@@ -143,6 +157,8 @@ let rec completion l n =
 
 (* Question 1.4 *)
 
+(* Return une liste de liste, chacune des sous-listes contient n éléments de la liste *)
+(* paquets [1;2;3;4;5;6;7;8;9;10;11] 3 returns [ [1;2;3] ; [4;5;6] ; [7;8;9] ; [10;11] ] *)
 let paquets liste n =
   (* par convention, on renvoie une liste vide si n = 0 *)
   if n = 0 then []
@@ -159,6 +175,7 @@ let paquets liste n =
     in aux liste n
 ;;
 
+(* Return un int64 correspondant à la liste de valeurs booléennes *)
 let rec composit l =
   let rec compo l pow =
     match l with
@@ -169,12 +186,15 @@ let rec composit l =
   in compo l 0L
 ;;
 
+(* La fonction prend une liste de liste de booléennes et renvoie le bigint correspondant
+en appliquant la fonction précédente sur chacune de ces sous-listes *)
 let rec comp ll =
   match ll with
     [] -> []
   | h::t -> (composit h)::(comp t)
 ;;
 
+(*  bool list -> int64 list (un bigint) *)
 let rec composition l =
   match l with
     [] -> [0L]
@@ -183,6 +203,7 @@ let rec composition l =
 
 (* Question 1.5 *)
 
+(* Générer la table de vérité d'un bigint *)
 let table x n =
   completion (decomposition x) n
 ;;
@@ -300,7 +321,7 @@ let treatNodeCompression current_node n ldv =
 ;;
 
 (* Renvoie le nouvel arbre compressé et
-  la liste des couples (bigint, bdd) des noeuds visités. 
+  la liste des couples (bigint, bdd) des noeuds visités.
   Omission de la règle Z, car les noeuds ayant des false dans la 2nde moitié de leur liste
   seront toujours merged à d'autres noeuds par la règle M. *)
 (* bdd -> listDejaVus -> (bdd, listDejaVus) *)
@@ -308,19 +329,19 @@ let rec compressionParListeAux current_node ldv =
   match current_node with
   | Leaf(e) -> (current_node, ldv)
   | Node(g, e, d) ->
-  
+
       (* Récupérer liste de feuille avant modification *)
       let g_feuilles_composees = composition (liste_feuilles g) in
       let d_feuilles_composees = composition (liste_feuilles d) in
-      
+
       (* Faire de la récurrence en suivant le parcours suffixe *)
       let (g1, ldv) = compressionParListeAux g ldv in
       let (d1, ldv) = compressionParListeAux d ldv in
-      
+
       (* Récupérer le pointeur de noeud de meme val ou ajout dans la liste des noeuds déjà visités *)
       let (g1, ldv) = treatNodeCompression g1 g_feuilles_composees ldv in
       let (d1, ldv) = treatNodeCompression d1 d_feuilles_composees ldv in
-      
+
       (* Renvoyer le nouveau noeud *)
       let new_node = Node(g1, e, d1) in
       (new_node, ldv)
@@ -329,7 +350,7 @@ let rec compressionParListeAux current_node ldv =
 
 (* bdd -> bdd *)
 let compressionParListe arbre =
-  let (new_arbre, ldv) = compressionParListeAux arbre [] in 
+  let (new_arbre, ldv) = compressionParListeAux arbre [] in
   new_arbre
 ;;
 
@@ -371,7 +392,7 @@ let rec toStringDotFormatAux
             else if e_str = "false"
             then Printf.sprintf "\t%s [label=%s,  style=\"filled\", fillcolor=\"red\"]\n" n e_str
             else Printf.sprintf "\t%s [label=%s]\n" n e_str
-            )
+          )
           in
           let s = current_string ^ s0 in
           let i = id + 1 in
@@ -382,7 +403,7 @@ let rec toStringDotFormatAux
     in
     let current_string = (
       if father_name = "root" then current_string else
-      current_string ^ Printf.sprintf "\t%s -> %s %s\n" father_name name line_style
+        current_string ^ Printf.sprintf "\t%s -> %s %s\n" father_name name line_style
     ) in
     (name, current_string, nodes_names_visited, id, already_visited)
   in
@@ -436,21 +457,21 @@ let rec insertOrGetADV adv nodeBDD vertable =
       match adv with
       | Empty -> (nodeBDD, NodeADV (Empty, Some nodeBDD, Empty))
       | NodeADV (g1, e1, d1) as n -> (
-          match e1 with 
+          match e1 with
           | None -> (nodeBDD, NodeADV (g1, Some nodeBDD, d1))
           | Some new_node -> (new_node, n)
-      )
-  )
-  | b::v2 -> 
+        )
+    )
+  | b::v2 ->
       match adv with
-      | Empty -> 
-          if b 
+      | Empty ->
+          if b
           then let (new_node, new_d1) = insertOrGetADV Empty nodeBDD v2 in
             (new_node, NodeADV (Empty, None, new_d1))
           else let (new_node, new_g1) = insertOrGetADV Empty nodeBDD v2 in
             (new_node, NodeADV (new_g1, None, Empty))
-      | NodeADV (g1, e1, d1) -> 
-          if b 
+      | NodeADV (g1, e1, d1) ->
+          if b
           then let (new_node, new_d1) = insertOrGetADV d1 nodeBDD v2 in
             (new_node, NodeADV (g1, e1, new_d1))
           else let (new_node, new_g1) = insertOrGetADV g1 nodeBDD v2 in
@@ -459,34 +480,34 @@ let rec insertOrGetADV adv nodeBDD vertable =
 
 
 (* Renvoie le nouvel arbre compressé et
-  l'arbreDejaVus des noeuds visités. 
+  l'arbreDejaVus des noeuds visités.
   TODO : Ne pas omettre la règle Z. *)
 (* bdd -> arbreDejaVus -> (bdd, arbreDejaVus) *)
 let rec compressionParArbreAux current_node adv =
   match current_node with
   | Leaf(e) -> (current_node, adv)
   | Node(g, e, d) ->
-  
+
       (* Récupérer liste de feuille avant modification *)
       let g_feuilles = liste_feuilles g in
       let d_feuilles = liste_feuilles d in
-      
+
       (* Règle Z *)
-      if composition d_feuilles = [0L] 
-      then 
+      if composition d_feuilles = [0L]
+      then
         let (g1, adv) = compressionParArbreAux g adv in
         let (g1, adv) = insertOrGetADV adv g1 g_feuilles in
         (g1, adv)
-        
-      else 
+
+      else
         (* Faire de la récurrence gauche *)
         let (g1, adv) = compressionParArbreAux g adv in
         let (d1, adv) = compressionParArbreAux d adv in
-        
+
         (* Récupérer le pointeur de noeud de meme val ou ajouter dans la liste des noeuds déjà visités *)
         let (g1, adv) = insertOrGetADV adv g1 g_feuilles in
         let (d1, adv) = insertOrGetADV adv d1 d_feuilles in
-        
+
         (* Renvoyer le nouveau noeud *)
         let new_node = Node(g1, e, d1) in
         (new_node, adv)
@@ -495,7 +516,7 @@ let rec compressionParArbreAux current_node adv =
 
 (* bdd -> bdd *)
 let compressionParArbre arbre =
-  let (new_arbre, adv) = compressionParArbreAux arbre Empty in 
+  let (new_arbre, adv) = compressionParArbreAux arbre Empty in
   new_arbre
 ;;
 
@@ -503,9 +524,9 @@ let compressionParArbre arbre =
 let bigintToDot filename b isParListe =
   let vertable = decomposition b in
   let arbre = cons_arbre vertable in
-  let arbre_compressed = 
+  let arbre_compressed =
     if isParListe
-    then compressionParListe arbre 
+    then compressionParListe arbre
     else compressionParArbre arbre
   in
   (* let title = Printf.sprintf "bdd_%s" (bigint_to_string b) in *)
@@ -567,14 +588,14 @@ let n1 = Node(n21, 1, n22);;
 let print_ldv ldv =
   print_string "\nldv3 = ";
   List.iter (fun (a, b) ->
-    print_string "(";
-    print_bigint a;
-    print_string "";
-    let () = match (!b) with
-      | Leaf(e) -> print_string (string_of_bool e)
-      | Node(a1, e, a2) -> print_int e in
-    print_string "), " )
-  ldv
+      print_string "(";
+      print_bigint a;
+      print_string "";
+      let () = match (!b) with
+        | Leaf(e) -> print_string (string_of_bool e)
+        | Node(a1, e, a2) -> print_int e in
+      print_string "), " )
+    ldv
 ;;
 
 (*
@@ -620,7 +641,7 @@ printf "\n\n";;
 
 
 (* TESTS PARTIE 4 *)
-(* 
+(*
   Pour tester :
   1. Génération des fichiers dot :
       $ ocaml main.ml
@@ -634,7 +655,7 @@ let () = bigintToDot "25899L_LDV" b true;;
 let () = bigintToDot "25899L_ADV" b false;;
 printf "\n";;
 
-(* 
+(*
 let b = [7L];; (* = 7 *)
 print_bigint b;;
 let () = bigintToDot "7L_LDV" b true;;
@@ -665,7 +686,7 @@ let () = bigintToDot "e3_bits_LDV" b true;;
 let () = bigintToDot "e3_bits_ADV" b false;;
 printf "\n";;
 
-let b = genalea 2000L;; 
+let b = genalea 2000L;;
 print_bigint b;;
 
 let a = decomposition b;;
@@ -684,10 +705,10 @@ print_bigint b;;
 let () = bigintToDot "3e3_bits_LDV" b true;;
 let () = bigintToDot "3e3_bits_ADV" b false;;
 printf "\n";;
- *)
+*)
 (* Le test suivant met une 20aine de secondes à générer les dots. *)
 (* Les fichiers dots des arbres compressés ne sont pas identiques... *)
-(* 
+(*
 let b = genalea 10000L;;
 print_bigint b;;
 let () = bigintToDot "e4_bits_LDV" b true;;
@@ -695,19 +716,19 @@ let () = bigintToDot "e4_bits_ADV" b false;;
 printf "\n"
 *)
 
-(* Compressions différentes pour, par exemple, le bigint suivant (sur 2999 bits) : 
+(* Compressions différentes pour, par exemple, le bigint suivant (sur 2999 bits) :
 
-[-7397863826597483745; -7770261156321738754; 1236646854865449075; -5190928585146045899; 
--4992808975050723075; -5741163498365487965; 7946033078052947069; -2800735776790153635; 
--3918936533814437455; -8998001415999952448; -6294537310539991044; -7668792850197517654; 
-8563250432377705112; -552875915331482884; -6668039009565253450; -881992044850089135; 
--5531170330478518348; -3552442076188947852; 5565918363508105768; -9161973353537052590; 
--5502829082253087124; -3043477099894200854; 4834271741461236247; 3176104119376014797; 
-8173290540801592168; -4800686476214529944; 2343392459435193004; -7177155205930299855; 
-8863579622411367543; 7547174846486908704; 7196820598621166457; 1761421479576635729; 
--6805764409314456464; -8737641954624191063; -3284744692263401815; 1879820879237403955; 
--1170213225930205699; -5764086671883100520; -6879513556585695580; -4857462984785588336; 
-6258772459160726337; -1049649545095147934; -8986565433282590063; 3399141512103088421; 
+[-7397863826597483745; -7770261156321738754; 1236646854865449075; -5190928585146045899;
+-4992808975050723075; -5741163498365487965; 7946033078052947069; -2800735776790153635;
+-3918936533814437455; -8998001415999952448; -6294537310539991044; -7668792850197517654;
+8563250432377705112; -552875915331482884; -6668039009565253450; -881992044850089135;
+-5531170330478518348; -3552442076188947852; 5565918363508105768; -9161973353537052590;
+-5502829082253087124; -3043477099894200854; 4834271741461236247; 3176104119376014797;
+8173290540801592168; -4800686476214529944; 2343392459435193004; -7177155205930299855;
+8863579622411367543; 7547174846486908704; 7196820598621166457; 1761421479576635729;
+-6805764409314456464; -8737641954624191063; -3284744692263401815; 1879820879237403955;
+-1170213225930205699; -5764086671883100520; -6879513556585695580; -4857462984785588336;
+6258772459160726337; -1049649545095147934; -8986565433282590063; 3399141512103088421;
 -1858961850604665463; 7974041216154821691; 31402785079399147]
 
 *)
