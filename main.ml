@@ -19,7 +19,8 @@ type listeDejaVus = (bigint * bdd) list;;
 (* Question 4.15 : Arbre de noeuds deja vus *)
 type arbreDejaVus = 
   | Empty
-  | NodeADV of {gauche : arbreDejaVus; mutable e : (bdd option); droite : arbreDejaVus }
+  | NodeADV of arbreDejaVus * bdd option * arbreDejaVus
+;;
 
 
 
@@ -433,10 +434,10 @@ let rec insertOrGetADV adv nodeBDD vertable =
   match vertable with
   | [] -> (
       match adv with
-      | Empty -> (nodeBDD, NodeADV {gauche=Empty; e=Some nodeBDD; droite=Empty})
-      | NodeADV {gauche=g1; e=e1; droite=d1} as n -> (
+      | Empty -> (nodeBDD, NodeADV (Empty, Some nodeBDD, Empty))
+      | NodeADV (g1, e1, d1) as n -> (
           match e1 with 
-          | None -> (nodeBDD, NodeADV {gauche=g1; e=Some nodeBDD; droite=d1})
+          | None -> (nodeBDD, NodeADV (g1, Some nodeBDD, d1))
           | Some new_node -> (new_node, n)
       )
   )
@@ -445,15 +446,15 @@ let rec insertOrGetADV adv nodeBDD vertable =
       | Empty -> 
           if b 
           then let (new_node, new_d1) = insertOrGetADV Empty nodeBDD v2 in
-            (new_node, NodeADV {gauche=Empty; e=None; droite=new_d1})
+            (new_node, NodeADV (Empty, None, new_d1))
           else let (new_node, new_g1) = insertOrGetADV Empty nodeBDD v2 in
-            (new_node, NodeADV {gauche=new_g1; e=None; droite=Empty})
-      | NodeADV {gauche=g1; e=e1; droite=d1} -> 
+            (new_node, NodeADV (new_g1, None, Empty))
+      | NodeADV (g1, e1, d1) -> 
           if b 
           then let (new_node, new_d1) = insertOrGetADV d1 nodeBDD v2 in
-            (new_node, NodeADV {gauche=g1; e=e1; droite=new_d1})
+            (new_node, NodeADV (g1, e1, new_d1))
           else let (new_node, new_g1) = insertOrGetADV g1 nodeBDD v2 in
-            (new_node, NodeADV {gauche=new_g1; e=e1; droite=d1})
+            (new_node, NodeADV (new_g1, e1, d1))
 ;;
 
 
@@ -627,6 +628,13 @@ printf "\n\n";;
       $ diff e3_bits_LDV_compressed.dot e3_bits_ADV_compressed.dot
 *)
 
+let b = [25899L];; (* = 25899 *)
+print_bigint b;;
+let () = bigintToDot "25899L_LDV" b true;;
+let () = bigintToDot "25899L_ADV" b false;;
+printf "\n";;
+
+(* 
 let b = [7L];; (* = 7 *)
 print_bigint b;;
 let () = bigintToDot "7L_LDV" b true;;
@@ -676,7 +684,7 @@ print_bigint b;;
 let () = bigintToDot "3e3_bits_LDV" b true;;
 let () = bigintToDot "3e3_bits_ADV" b false;;
 printf "\n";;
-
+ *)
 (* Le test suivant met une 20aine de secondes à générer les dots. *)
 (* Les fichiers dots des arbres compressés ne sont pas identiques... *)
 (* 
