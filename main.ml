@@ -3,7 +3,7 @@ open Printf
 open Random
 let () = Random.self_init ();
 
-(* Question 1.1 : représentation d'un bigint en liste d'int64 *)
+(* Question 1.1 : Représentation d'un bigint en liste d'int64 *)
 type bigint = int64 list;;
 
 (* Question 2.7 : Binary Decision Diagram *)
@@ -12,8 +12,7 @@ type bdd =
   | Node of bdd * int * bdd
 ;;
 
-(* Question 3.10 : liste de couples (bigint * pointeur vers noeud d'un bdd) *)
-(* TODO : remplacer bdd par une ref vers un noeud ??? *)
+(* Question 3.10 : Liste de couples (bigint * pointeur vers noeud d'un bdd) *)
 type listeDejaVus = (bigint * bdd) list;;
 
 (* Question 4.15 : Arbre de noeuds deja vus *)
@@ -74,13 +73,6 @@ let print_bigint b =
   in
   printf "[";
   print_bigint_aux b
-;;
-
-let rec bigint_to_string b =
-  match b with
-  | [] -> "EMPTY"
-  | [e] -> to_string e
-  | e::b2 -> to_string e ^ "-" ^ (bigint_to_string b2)
 ;;
 
 
@@ -300,7 +292,7 @@ let rec liste_feuilles a =
 
 (* Renvoie la deuxième composante du couple de la liste qui respecte cette condition :
     "1ère_comp_recherchée operator 1ère_comp_de_la_liste" est vraie *)
-(* bigint -> listeDejaVus -> option ref bdd *)
+(* bigint -> listeDejaVus -> option bdd *)
 let rec get_second_componant target_first_comp operator pairs_list =
   match pairs_list with
   | [] -> None
@@ -360,7 +352,7 @@ let compressionParListe arbre =
 (* bdd current_node
   -> string father_name
   -> bool is_gauche
-  -> list (ref bdd * string) nodes_names_visited
+  -> list (bdd * string) nodes_names_visited
   -> int id
   -> string
 Fonctionnement :
@@ -439,7 +431,8 @@ let toStringDotFormat current_node =
   "digraph Q {\n" ^ node_str ^ "}\n"
 ;;
 
-(* TODO : modifier cette fonction pour décharger le contenu ligne par ligne ou dans un buffer *)
+(* Exporte le string content dans un fichier nommé filename.
+   L'écrase s'il existe déjà. *)
 let exportDot filename content =
   let oc = open_out filename in (* create or truncate file, return channel *)
   Printf.fprintf oc "%s" content; (* write something *)
@@ -450,7 +443,6 @@ let exportDot filename content =
 (* Question 4.16 et 4.17 *)
 
 (* Renvoie l'élément recherché et adv éventuellement modifié *)
-(* TODO : remplacer les records de NodeADV en trucs normaux *)
 let rec insertOrGetADV adv nodeBDD vertable =
   match vertable with
   | [] -> (
@@ -480,8 +472,7 @@ let rec insertOrGetADV adv nodeBDD vertable =
 
 
 (* Renvoie le nouvel arbre compressé et
-  l'arbreDejaVus des noeuds visités.
-  TODO : Ne pas omettre la règle Z. *)
+  l'arbreDejaVus des noeuds visités. *)
 (* bdd -> arbreDejaVus -> (bdd, arbreDejaVus) *)
 let rec compressionParArbreAux current_node adv =
   match current_node with
@@ -521,6 +512,8 @@ let compressionParArbre arbre =
 ;;
 
 
+(* Exécute la compression par liste ou par arbre sur le bigint b 
+   et exporte les fichiers dot des arbres avant et après compression. *)
 let bigintToDot filename b isParListe =
   let vertable = decomposition b in
   let arbre = cons_arbre vertable in
@@ -529,7 +522,6 @@ let bigintToDot filename b isParListe =
     then compressionParListe arbre
     else compressionParArbre arbre
   in
-  (* let title = Printf.sprintf "bdd_%s" (bigint_to_string b) in *)
   let title = filename in
   exportDot (title^".dot") (toStringDotFormat arbre);
   exportDot (title^"_compressed.dot") (toStringDotFormat arbre_compressed);
