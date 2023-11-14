@@ -47,10 +47,18 @@ let rec compressionParListeAux current_node ldv =
   match current_node with
   | Leaf(e) -> (current_node, ldv)
   | Node(g, e, d) ->
-
+      
       (* Récupérer liste de feuille avant modification *)
       let g_feuilles_composees = composition (liste_feuilles g) in
       let d_feuilles_composees = composition (liste_feuilles d) in
+
+      (* Règle Z *)
+      if d_feuilles_composees = [0L]
+      then
+        let (g1, ldv) = compressionParListeAux g ldv in
+        let (g1, ldv) = treatNodeCompression g1 g_feuilles_composees ldv in
+        (g1, ldv)
+      else
 
       (* Faire de la récurrence en suivant le parcours suffixe *)
       let (g1, ldv) = compressionParListeAux g ldv in
@@ -258,7 +266,7 @@ let bigintToDot filename b isParListe =
 let rec has l elt =
   match l with
   | [] -> false
-  | e::l2 -> if e = elt then true else has l2 elt
+  | e::l2 -> if e == elt then true else has l2 elt
 ;;
 
 
