@@ -44,6 +44,12 @@ let print_bigint b =
   print_bigint_aux b
 ;;
 
+let rec bigint_to_string b =
+  match b with
+  | [] -> "EMPTY"
+  | [e] -> to_string e ^ "L"
+  | e::b2 -> to_string e ^ "L; " ^ (bigint_to_string b2)
+;;
 
 (* Question 1.2 *)
 

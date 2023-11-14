@@ -2,6 +2,7 @@
 type bigint = int64 list;;
 
 val print_bigint : bigint -> unit
+val bigint_to_string : bigint -> string
 val pow2 : int64 -> int64
 
 (* Question 1.2 *)

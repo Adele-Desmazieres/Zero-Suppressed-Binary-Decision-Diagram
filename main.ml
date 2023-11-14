@@ -87,7 +87,7 @@ let tests_3 () =
 let tests_4 () = 
   
   let dirname = "./tests_4/" in
-  if not (Sys.file_exists dirname) then Sys.mkdir dirname 0o755;
+  (* if not (Sys.file_exists dirname) then Sys.mkdir dirname 0o755; *)
   
   let standard_test_4 b filename =
     print_bigint b;
@@ -103,7 +103,22 @@ let tests_4 () =
   standard_test_4 (genalea 1000L) "e3_bits";
   standard_test_4 (genalea 2000L) "2e3_bits";
   standard_test_4 (genalea 3000L) "3e3_bits";
-  (* standard_test_4 (genalea 10000L) "e4_bits"; *)
+  standard_test_4 (genalea 10000L) "e4_bits";
+  
+  let b = [-7397863826597483745L; -7770261156321738754L; 1236646854865449075L; -5190928585146045899L;
+  -4992808975050723075L; -5741163498365487965L; 7946033078052947069L; -2800735776790153635L;
+  -3918936533814437455L; -8998001415999952448L; -6294537310539991044L; -7668792850197517654L;
+  8563250432377705112L; -552875915331482884L; -6668039009565253450L; -881992044850089135L;
+  -5531170330478518348L; -3552442076188947852L; 5565918363508105768L; -9161973353537052590L;
+  -5502829082253087124L; -3043477099894200854L; 4834271741461236247L; 3176104119376014797L;
+  8173290540801592168L; -4800686476214529944L; 2343392459435193004L; -7177155205930299855L;
+  8863579622411367543L; 7547174846486908704L; 7196820598621166457L; 1761421479576635729L;
+  -6805764409314456464L; -8737641954624191063L; -3284744692263401815L; 1879820879237403955L;
+  -1170213225930205699L; -5764086671883100520L; -6879513556585695580L; -4857462984785588336L;
+  6258772459160726337L; -1049649545095147934L; -8986565433282590063L; 3399141512103088421L;
+  -1858961850604665463L; 7974041216154821691L; 31402785079399147L] in
+  standard_test_4 b "test2";
+
   
   (* Compressions différentes entre par arbre et par liste à partir d'environ 3000 bits.
      Par exemple, le bigint suivant (sur 2999 bits) donne deux compressions différentes :
@@ -120,13 +135,119 @@ let tests_4 () =
   -1170213225930205699; -5764086671883100520; -6879513556585695580; -4857462984785588336;
   6258772459160726337; -1049649545095147934; -8986565433282590063; 3399141512103088421;
   -1858961850604665463; 7974041216154821691; 31402785079399147]
+  
+  [-7397863826597483745L; -7770261156321738754L; 1236646854865449075L; -5190928585146045899L;
+  -4992808975050723075L; -5741163498365487965L; 7946033078052947069L; -2800735776790153635L;
+  -3918936533814437455L; -8998001415999952448L; -6294537310539991044L; -7668792850197517654L;
+  8563250432377705112L; -552875915331482884L; -6668039009565253450L; -881992044850089135L;
+  -5531170330478518348L; -3552442076188947852L; 5565918363508105768L; -9161973353537052590L;
+  -5502829082253087124L; -3043477099894200854L; 4834271741461236247L; 3176104119376014797L;
+  8173290540801592168L; -4800686476214529944L; 2343392459435193004L; -7177155205930299855L;
+  8863579622411367543L; 7547174846486908704L; 7196820598621166457L; 1761421479576635729L;
+  -6805764409314456464L; -8737641954624191063L; -3284744692263401815L; 1879820879237403955L;
+  -1170213225930205699L; -5764086671883100520L; -6879513556585695580L; -4857462984785588336L;
+  6258772459160726337L; -1049649545095147934L; -8986565433282590063L; 3399141512103088421L;
+  -1858961850604665463L; 7974041216154821691L; 31402785079399147L]
+
   *)
 ;;
 
+
+let execution_times filename n_bits_init n_bits_max n_bits_step =
+  let oc = open_out filename in (* create or truncate file, return channel *)
+  Printf.fprintf oc "nb_bits_genalea,temps_liste,temps_arbre\n";
+  
+  let rec forloop n_bits =
+    
+    let b = genalea n_bits in
+    let vertable = decomposition b in
+    let arbre = cons_arbre vertable in
+    
+    (* comparaison par liste *)
+    let t_init = Sys.time() in (* initialisation du temps *)
+    compressionParListe arbre;
+    let t_liste = Sys.time() -. t_init in
+    
+    (* comparaison par arbre *)
+    let t_init = Sys.time() in (* initialisation du temps *)
+    compressionParArbre arbre;
+    let t_arbre = Sys.time() -. t_init in
+    
+    (* export temps en csv *)
+    Printf.fprintf oc "%Lu,%f,%f\n" n_bits t_liste t_arbre;
+    
+    if (add n_bits n_bits_step < n_bits_max)
+    then forloop (add n_bits n_bits_step)
+    else ()
+    
+  in
+  
+  forloop n_bits_init;
+  close_out oc (* close channel *)
+;;
+
+
+let compression_rates filename n_bits_init n_bits_max n_bits_step =
+  let oc = open_out filename in (* create or truncate file, return channel *)
+  Printf.fprintf oc "bigint,nb_bits_genalea,nb_noeuds_depart,nb_noeuds_liste,nb_noeuds_arbre\n";
+  
+  let rec forloop n_bits =
+    
+    let b = genalea n_bits in
+    let vertable = decomposition b in
+    let arbre = cons_arbre vertable in
+    let nb_noeuds = count_nodes arbre in
+    
+    (* comparaison par liste *)
+    let a_ldv = compressionParListe arbre in
+    let nb_noeuds_liste = count_nodes a_ldv in
+    
+    (* comparaison par arbre *)
+    let a_adv = compressionParArbre arbre in
+    let nb_noeuds_arbre = count_nodes a_adv in
+    
+    (* export temps en csv *)
+    Printf.fprintf oc "%s,%Lu,%d,%d,%d\n" (bigint_to_string b) n_bits nb_noeuds nb_noeuds_liste nb_noeuds_arbre;
+    
+    if (add n_bits n_bits_step < n_bits_max)
+    then forloop (add n_bits n_bits_step)
+    else ()
+    
+  in
+  
+  forloop n_bits_init;
+  close_out oc (* close channel *)
+;;
+
+
+(* TESTS PARTIE 6 *)
+let tests_6 () =
+  (* execution_times "execution_times.csv" 10L 3001L 20L; *)
+  
+  let b = [25899L] in
+  let vertable = decomposition b in
+  let arbre = cons_arbre vertable in
+  let a_ldv = compressionParListe arbre in
+  
+  let avant_compression = count_nodes arbre in
+  let apres_compression = count_nodes a_ldv in
+  
+  printf "avant_compression = %d\n" avant_compression;
+  printf "apres_compression = %d\n" apres_compression;
+  
+  let b = [-91584709871724310L; -2401588754722799053L; 3L] in
+  bigintToDot "debug_liste" b true; 
+  bigintToDot "debug_arbre" b false; 
+  
+  (* compression_rates "compression_rates.csv" 10L 3001L 20L;  *)
+;;
+
+
 let main () =
-  tests_1_2 ();
-  tests_3 ();
-  tests_4 ()
+  (* tests_1_2 (); *)
+  (* tests_3 (); *)
+  tests_4 ();
+  (* tests_6 (); *)
 ;;
 
 main ();;
