@@ -1,14 +1,6 @@
 open Bigint
 open Decisiondiagram
 
-(* Question 3.10 *)
-type listeDejaVus = (Bigint.bigint * Decisiondiagram.bdd) list;;
-
-(* Question 4.15 *)
-type arbreDejaVus =
-  | Empty
-  | NodeADV of arbreDejaVus * Decisiondiagram.bdd option * arbreDejaVus
-;;
 
 val compressionParListe : Decisiondiagram.bdd -> Decisiondiagram.bdd
 
