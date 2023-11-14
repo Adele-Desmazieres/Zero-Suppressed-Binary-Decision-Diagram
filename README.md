@@ -19,9 +19,14 @@ To compile the project, run in a shell at its root:
 $ make all
 ```
 
-Then, to run the project: 
+Then, to run the tests of the project (it may take around 20s): 
 ```sh
 $ ./main
+```
+
+To print the graphs with python:
+```
+$ ./graphs.py
 ```
 
 To suppress every compilation file:

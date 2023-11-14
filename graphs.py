@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import matplotlib.pyplot as plt
 import csv
 
@@ -22,8 +24,6 @@ def graphe_execution_times(filename) :
                 line_count += 1
                 
         print(f'Processed {line_count} lines.')
-    
-    print(temps_LDV)
     
     plt.plot(nombre_bits, temps_LDV, label="LDV")
     plt.plot(nombre_bits, temps_ADV, label="ADV")
@@ -75,7 +75,7 @@ def graphe_compression(filename) :
     axes.xaxis.set_major_locator(plt.MaxNLocator(11))
     axes.yaxis.set_major_locator(plt.MaxNLocator(11))
     
-    plt.title("Taux de compression en nombre de nœuds dans l'arbre,\n en fonction du nombre de bits de départ")
+    plt.title("Taux de compression (taille avant / taille après) en nombre de nœuds dans l'arbre,\n en fonction du nombre de bits de départ")
     plt.grid()
     plt.show()
     plt.close()
