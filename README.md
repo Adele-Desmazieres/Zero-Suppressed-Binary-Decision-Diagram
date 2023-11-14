@@ -13,8 +13,18 @@ Download the code from: https://github.com/Adele-Desmazieres/Zero-Suppressed-Bin
 
 ## Execution
 
-In a shell at the root of the project:
+To compile the project, run in a shell at its root:
 
 ```sh
-$ ocaml main.ml
+$ make all
+```
+
+Then, to run the project: 
+```sh
+$ ./main
+```
+
+To suppress every compilation file:
+```sh
+$ make clean
 ```
