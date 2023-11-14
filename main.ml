@@ -87,7 +87,7 @@ let tests_3 () =
 let tests_4 () = 
   
   let dirname = "./tests_4/" in
-  (* if not (Sys.file_exists dirname) then Sys.mkdir dirname 0o755; *)
+  if not (Sys.file_exists dirname) then Sys.mkdir dirname 0o755;
   
   let standard_test_4 b filename =
     print_bigint b;
@@ -144,7 +144,7 @@ let execution_times filename n_bits_init n_bits_max n_bits_step =
 
 let compression_rates filename n_bits_init n_bits_max n_bits_step =
   let oc = open_out filename in (* create or truncate file, return channel *)
-  Printf.fprintf oc "bigint,nb_bits_genalea,nb_noeuds_depart,nb_noeuds_liste,nb_noeuds_arbre\n";
+  Printf.fprintf oc "nb_bits_genalea,nb_noeuds_depart,nb_noeuds_liste,nb_noeuds_arbre\n";
   
   let rec forloop n_bits =
     
@@ -183,9 +183,9 @@ let tests_6 () =
 
 
 let main () =
-  (* tests_1_2 (); *)
-  (* tests_3 (); *)
-  (* tests_4 (); *)
+  tests_1_2 ();
+  tests_3 ();
+  tests_4 ();
   tests_6 ();
 ;;
 
