@@ -165,12 +165,12 @@ let execution_times filename n_bits_init n_bits_max n_bits_step =
     
     (* comparaison par liste *)
     let t_init = Sys.time() in (* initialisation du temps *)
-    compressionParListe arbre;
+    let _ = compressionParListe arbre in
     let t_liste = Sys.time() -. t_init in
     
     (* comparaison par arbre *)
     let t_init = Sys.time() in (* initialisation du temps *)
-    compressionParArbre arbre;
+    let _ = compressionParArbre arbre in
     let t_arbre = Sys.time() -. t_init in
     
     (* export temps en csv *)
@@ -207,7 +207,7 @@ let compression_rates filename n_bits_init n_bits_max n_bits_step =
     let nb_noeuds_arbre = count_nodes a_adv in
     
     (* export temps en csv *)
-    Printf.fprintf oc "%s,%Lu,%d,%d,%d\n" (bigint_to_string b) n_bits nb_noeuds nb_noeuds_liste nb_noeuds_arbre;
+    Printf.fprintf oc "%Lu,%d,%d,%d\n" n_bits nb_noeuds nb_noeuds_liste nb_noeuds_arbre;
     
     if (add n_bits n_bits_step < n_bits_max)
     then forloop (add n_bits n_bits_step)
@@ -223,7 +223,7 @@ let compression_rates filename n_bits_init n_bits_max n_bits_step =
 (* TESTS PARTIE 6 *)
 let tests_6 () =
   (* execution_times "execution_times.csv" 10L 3001L 20L; *)
-  
+  (*
   let b = [25899L] in
   let vertable = decomposition b in
   let arbre = cons_arbre vertable in
@@ -238,16 +238,16 @@ let tests_6 () =
   let b = [-91584709871724310L; -2401588754722799053L; 3L] in
   bigintToDot "debug_liste" b true; 
   bigintToDot "debug_arbre" b false; 
-  
-  (* compression_rates "compression_rates.csv" 10L 3001L 20L;  *)
+  *)
+  compression_rates "compression_rates.csv" 10L 3001L 20L; 
 ;;
 
 
 let main () =
   (* tests_1_2 (); *)
   (* tests_3 (); *)
-  tests_4 ();
-  (* tests_6 (); *)
+  (* tests_4 (); *)
+  tests_6 ();
 ;;
 
 main ();;
