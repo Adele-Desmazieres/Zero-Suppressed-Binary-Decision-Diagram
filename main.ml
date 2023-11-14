@@ -124,8 +124,8 @@ let tests_4 () =
 ;;
 
 let main () =
-  (* tests_1_2 (); *)
-  (* tests_3 (); *)
+  tests_1_2 ();
+  tests_3 ();
   tests_4 ()
 ;;
 
