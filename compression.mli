@@ -11,3 +11,5 @@ val exportDot : string -> string -> unit
 val compressionParArbre : Decisiondiagram.bdd -> Decisiondiagram.bdd
 
 val bigintToDot : string -> Bigint.bigint -> bool -> unit
+
+val count_nodes : Decisiondiagram.bdd -> int

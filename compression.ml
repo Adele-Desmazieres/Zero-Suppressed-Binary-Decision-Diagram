@@ -254,3 +254,32 @@ let bigintToDot filename b isParListe =
   ()
 ;;
 
+
+let rec has l elt =
+  match l with
+  | [] -> false
+  | e::l2 -> if e = elt then true else has l2 elt
+;;
+
+
+let count_nodes arbre =
+  
+  let rec count_nodes_aux arbre nodes_liste =  
+    
+    match arbre with
+    | Leaf(e) -> 
+      if has nodes_liste arbre
+      then nodes_liste, 0
+      else arbre::nodes_liste, 1
+        
+    | Node(g, e, d) -> 
+      let nodes_liste_g, n_g = count_nodes_aux g nodes_liste in
+      let nodes_liste_gd, n_d = count_nodes_aux d nodes_liste_g in
+      
+      if has nodes_liste arbre
+      then nodes_liste, 0
+      else arbre::nodes_liste_gd, (n_g + n_d + 1)
+  in
+  let _,res = count_nodes_aux arbre [] in res
+;;
+
