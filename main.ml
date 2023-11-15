@@ -96,6 +96,16 @@ let tests_4 () =
     printf "\n"
   in
   
+  let standard_test_4_bis b filename = 
+    let vertable = decomposition b in
+    let a = cons_arbre vertable in
+    let a_ldv = compressionParListe a in
+    let a_adv = compressionParArbre a in
+    exportDot (dirname^filename^"_cLDV.dot") (toStringDotFormat a_ldv);
+    exportDot (dirname^filename^"_cADV.dot") (toStringDotFormat a_adv);
+  in
+  
+  (*
   standard_test_4 [25899L] "25899L";
   standard_test_4 [7L] "7L";
   standard_test_4 [0L; 1L] "0L_1L";
@@ -103,7 +113,8 @@ let tests_4 () =
   standard_test_4 (genalea 1000L) "e3_bits";
   standard_test_4 (genalea 2000L) "2e3_bits";
   standard_test_4 (genalea 3000L) "3e3_bits";
-  standard_test_4 (genalea 10000L) "e4_bits";
+  standard_test_4 (genalea 10000L) "e4_bits"; *)
+  standard_test_4_bis (genalea 100000L) "e5_bits";
   
 ;;
 
@@ -177,15 +188,15 @@ let compression_rates filename n_bits_init n_bits_max n_bits_step =
 
 (* TESTS PARTIE 6 *)
 let tests_6 () =
-  execution_times "execution_times.csv" 10L 3001L 20L;
-  compression_rates "compression_rates.csv" 10L 3001L 20L; 
+  execution_times "execution_times.csv" 50L 10001L 50L;
+  compression_rates "compression_rates.csv" 50L 10001L 50L; 
 ;;
 
 
 let main () =
-  tests_1_2 ();
-  tests_3 ();
-  tests_4 ();
+  (* tests_1_2 (); *)
+  (* tests_3 (); *)
+  (* tests_4 (); *)
   tests_6 ();
 ;;
 
